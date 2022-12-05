@@ -1,0 +1,8 @@
+#open mysql in command line - enter
+sudo /usr/local/mysql/bin/mysql -u root -p
+
+#create database
+
+#create tables
+
+#create loans table
