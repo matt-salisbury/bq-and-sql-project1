@@ -3,6 +3,110 @@ sudo /usr/local/mysql/bin/mysql -u root -p
 
 #create database
 
+CREATE DATABASE DB_SIMULATED_RWA;
+USE DB_SIMULATED_RWA
+
 #create tables
 
+CREATE TABLE RATING_SCALES (
+RATING_GRADE INTEGER(2)
+, RATING_CALCE VARCHAR(20)
+, REGULATORY_PD FLOAT(24)
+, NORMS_INV_PD FLOAT(24));
+
+CREATE TABLE LOANS_TABLE (
+END_OF_PERIOD_BALANCE FLOAT(size=10, d=2)
+, UNDRAWN_AMOUNT FLOAT(size=10, d=2)
+, TOTAL_RETURN_SWAP_ASSET_OFFSETTING_DETERIORATION_FLAG FLOAT(size=10,2)
+, PRODUCT_CODE VARCHAR(20)
+, GAAP_CODE VARCHAR(20)
+, ACCOUNT_OR_CONTRACT_NUMBER INTEGER(2)
+, EXPOSURE_DEFAULTED_FLAG VARCHAR(20)
+, FI_SCALAR INTEGER(2)
+, SME_SCALAR INTEGER(2)
+, READ FLOAT(size=10, d=2)
+, REL FLOAT(size=10, d=2)
+, RWA FLOAT(size=10, d=2)
+, TURNOVER FLOAT(size=10, d=2)
+)
+
 #create loans table
+
+#create rating table
+
+############################################
+#SCRATCHPAD
+############################################
+
+-- set statistics time off
+drop table t1;
+create table t1 (L0 SELECT c FROM (SELECT 1 UNION ALL SELECT 1) AS D(c)),
+
+create table t1
+
+SELECT c FROM (SELECT 1 UNION ALL SELECT 1 AS c) AS D(c);,
+L1 AS (SELECT 1 AS c FROM L0 AS A CROSS JOIN L0 AS B);,
+L2 AS (SELECT 1 AS c FROM L1 AS A CROSS JOIN L1 AS B),
+L3 AS (SELECT 1 AS c FROM L2 AS A CROSS JOIN L2 AS B),
+L4 AS (SELECT 1 AS c FROM L3 AS A CROSS JOIN L3 AS B),
+L5 AS (SELECT 1 AS c FROM L4 AS A CROSS JOIN L4 AS B),
+Nums AS (SELECT ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS k FROM L5);
+
+select k as id into t1
+from Nums
+where k <= 1000000;
+
+DROP TABLE t1;
+CREATE TABLE t1 (id int);
+
+INSERT INTO t1 (id)
+WITH RECURSIVE my_cte AS
+(
+SELECT 1 AS n
+UNION ALL
+SELECT 1+n
+FROM my_cte WHERE n<1000
+)
+WITH my_cte2 AS
+(
+SELECT 1 AS N FROM my_cte2 AS A CROSS JOIN my_cte AS B
+)
+SELECT n AS id FROM my_cte2;
+
+
+
+
+ELECT n as id INTO t1
+FROM my_cte;
+
+
+(
+SELECT 1 AS n
+UNION ALL
+SELECT 1+n FROM my_test1 WHERE n<10
+)
+
+L1 AS (
+SELECT 1 AS n FROM my_cte AS A CROSS JOIN my_cte)
+SELECT * FROM L1;
+
+SELECT * FROM my_cte CROSS JOIN my_cte;
+
+
+
+#https://dba.stackexchange.com/questions/130392/generate-and-insert-1-million-rows-into-simple-table
+DROP TABLE t1;
+CREATE TABLE t1 (id int);
+INSERT INTO t1 (id)
+WITH
+  L0   AS (SELECT c FROM (SELECT 1 UNION ALL SELECT 1) AS D(c)), -- 2^1
+  L1   AS (SELECT 1 AS c FROM L0 AS A CROSS JOIN L0 AS B),       -- 2^2
+  L2   AS (SELECT 1 AS c FROM L1 AS A CROSS JOIN L1 AS B),       -- 2^4
+  L3   AS (SELECT 1 AS c FROM L2 AS A CROSS JOIN L2 AS B),       -- 2^8
+  L4   AS (SELECT 1 AS c FROM L3 AS A CROSS JOIN L3 AS B),       -- 2^16
+  L5   AS (SELECT 1 AS c FROM L4 AS A CROSS JOIN L4 AS B),       -- 2^32
+  Nums AS (SELECT ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS k FROM L5)
+
+select k as id
+from nums
+where k <= 1000;
