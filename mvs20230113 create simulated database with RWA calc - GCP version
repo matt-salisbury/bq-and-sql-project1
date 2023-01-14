@@ -1,10 +1,74 @@
-CREATE DATABASE DB_SIMULATED_RWA;
-USE DB_SIMULATED_RWA;
+CREATE SCHEMA `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw;
 
 /*1. CREATE REQUIRED USER DEFINED FUNCTIONS*/
 
 /*1A. CUMULATIVE NORMAL DISTRIBUTION FUNCTION*/
 /*Adapted from --https://stackoverflow.com/questions/4417005/how-can-we-achieve-standard-normal-cdf-in-oracle-sql-or-pl-sql*/
+
+/*1. CREATE REQUIRED USER DEFINED FUNCTIONS*/
+
+/*1A. CUMULATIVE NORMAL DISTRIBUTION FUNCTION*/
+/*Adapted from --https://stackoverflow.com/questions/4417005/how-can-we-achieve-standard-normal-cdf-in-oracle-sql-or-pl-sql*/
+
+CREATE OR REPLACE PROCEDURE --IF NOT EXISTS
+`dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist (x float64)
+BEGIN
+  declare t float64;
+  declare z float64;
+  declare ans float64;
+
+  declare a1 float64;
+  declare a2 float64;
+  declare a3 float64;
+  declare a4 float64;
+  declare a5 float64;
+  declare a6 float64;
+  declare a7 float64;
+  declare a8 float64;
+  declare a9 float64;
+  declare a10 float64;
+
+  set a1 = 0.17087277;
+  set a2 = -0.82215223;
+  set a3 = 1.48851587;
+  set a4 = -1.13520398;
+  set a5 = 0.27886807;
+  set a6 = -0.18628806;
+  set a7 = 0.09678418;
+  set a8 = 0.37409196;
+  set a9 = 1.00002368;
+  set a10 = 1.26551223;
+
+  set z = ABS(x)/SQRT(2);
+  set t = 1/(1+0.5*z);
+  set ans = t*exp(-z*z-a10+t*(a9+t*(a8+t*(a7+t*(a7+t*(a6+t*(a5+t*(a4+t*(a3+t*(a2+t*a1))))))))));
+  IF x > 0 THEN
+    set ans = 1-ans;
+  END IF;
+  INSERT INTO `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.T1
+  VALUES(ans);
+END;
+
+CREATE OR REPLACE TABLE `dmn01_rsk_mvs_raw`.T1 AS
+WITH RECURSIVE Ten AS
+(
+  SELECT 1 AS one UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1
+)
+SELECT
+row_number() over(order by one asc) AS id
+FROM Ten;
+
+SELECT * FROM `dmn01_rsk_mvs_raw`.T1 order by id;
+
+CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist((select id from `dmn01_rsk_mvs_raw`.T1));
+
+
+
+CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist(select id from T1);
+
+
 if object_id('normsdist') is not null
 BEGIN
   DROP FUNCTION normsdist
@@ -44,7 +108,7 @@ BEGIN
   set @z = ABS(@x)/SQRT(2)
   set @t = 1/(1+0.5*@z)
   set ans = @t*exp(-@z*@z-@a10+@t*(@a9+@t*(@a8+@t*(@a7+@t*(@a7+@t*(@a6+@t*(@a5+@t*(@a4+@t*(@a3+@t*(@a2+@t*@a1))))))))))
-  IF (@X > 0)
+  IF (@x > 0)
     set @ans = 1-@ans
   return @ans
 END
