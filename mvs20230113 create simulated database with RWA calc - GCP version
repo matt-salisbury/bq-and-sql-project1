@@ -1,4 +1,4 @@
-CREATE SCHEMA `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw;
+--CREATE SCHEMA `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw;
 
 /*1. CREATE REQUIRED USER DEFINED FUNCTIONS*/
 
@@ -11,344 +11,180 @@ CREATE SCHEMA `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw;
 /*Adapted from --https://stackoverflow.com/questions/4417005/how-can-we-achieve-standard-normal-cdf-in-oracle-sql-or-pl-sql*/
 
 CREATE OR REPLACE PROCEDURE --IF NOT EXISTS
-`dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist (x float64)
+`dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist (
+  input_tbl STRING
+  ,input_col STRING
+  ,output_tbl STRING
+  ,output_col STRING
+  )
 BEGIN
-  declare t float64;
-  declare z float64;
-  declare ans float64;
 
-  declare a1 float64;
-  declare a2 float64;
-  declare a3 float64;
-  declare a4 float64;
-  declare a5 float64;
-  declare a6 float64;
-  declare a7 float64;
-  declare a8 float64;
-  declare a9 float64;
-  declare a10 float64;
+  declare a1 float64 DEFAULT 0.17087277;
+  declare a2 float64 DEFAULT -0.82215223;
+  declare a3 float64 DEFAULT 1.48851587;
+  declare a4 float64 DEFAULT -1.13520398;
+  declare a5 float64 DEFAULT 0.27886807;
+  declare a6 float64 DEFAULT -0.18628806;
+  declare a7 float64 DEFAULT 0.09678418;
+  declare a8 float64 DEFAULT 0.37409196;
+  declare a9 float64 DEFAULT 1.00002368;
+  declare a10 float64 DEFAULT 1.26551223;
 
-  set a1 = 0.17087277;
-  set a2 = -0.82215223;
-  set a3 = 1.48851587;
-  set a4 = -1.13520398;
-  set a5 = 0.27886807;
-  set a6 = -0.18628806;
-  set a7 = 0.09678418;
-  set a8 = 0.37409196;
-  set a9 = 1.00002368;
-  set a10 = 1.26551223;
-
-  set z = ABS(x)/SQRT(2);
-  set t = 1/(1+0.5*z);
-  set ans = t*exp(-z*z-a10+t*(a9+t*(a8+t*(a7+t*(a7+t*(a6+t*(a5+t*(a4+t*(a3+t*(a2+t*a1))))))))));
-  IF x > 0 THEN
-    set ans = 1-ans;
-  END IF;
-  INSERT INTO `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.T1
-  VALUES(ans);
+  EXECUTE IMMEDIATE
+    "create or replace table"||output_tbl||" as" ||
+    " with recursive int_calcs as " ||
+    "(select "||input_col||
+    ", abs("||input_col||")/sqrt(2) as z" ||
+    ", 1 / (1 + 0.5*(abs("||input_col||")/sqrt(2))) as t " ||
+    "from "||input_tbl||") " ||
+    "select *, case when "||input_col||" >0 then 1 - t*exp(-z*z-" ||a10||"+t*("||a9||"+t*("||a8||"+t*("||a7||"+t*("||a6||"+t*("||a5||"+t*("||a4||"+t*("||a3||"+t*("||a2||"+t*"||a1||")))))))))/2 " ||
+    "else t*exp(-z*z-" ||a10||"+t*("||a9||"+t*("||a8||"+t*("||a7||"+t*("||a6||"+t*("||a5||"+t*("||a4||"+t*("||a3||"+t*("||a2||"+t*"||a1||")))))))))/2 end as "||output_col||
+    " from int_calcs;";
 END;
 
-CREATE OR REPLACE TABLE `dmn01_rsk_mvs_raw`.T1 AS
-WITH RECURSIVE Ten AS
-(
-  SELECT 1 AS one UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
-  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
-  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1
-)
-SELECT
-row_number() over(order by one asc) AS id
-FROM Ten;
-
-SELECT * FROM `dmn01_rsk_mvs_raw`.T1 order by id;
-
-CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist((select id from `dmn01_rsk_mvs_raw`.T1));
+/*TEST NORMSDIST FUNCTION*/
+--CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist("`dmn01_rsk_mvs_raw`.T1", "id", "`dmn01_rsk_mvs_raw`.T2", "normsdist_id");
 
 
+/*1B. CREATE NORMSINV FUNCTION (INVERSE OF THE CUMULATIVE NORMAL DIST FUNCTION*/
+/*BASED ON VB CODE FROM THIS SITE: --https://github.com/garcianc/PPND16/blob/master/ppnd16.vb
+This site gives a VB translation of the FORTRAN code published in Michael J. Wichura, Applied Statistics, vol. 37, 1988, pp. 477-484*/
+/*Returns 0 if input is outside of bounds of [0,1]*/
 
-CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist(select id from T1);
+CREATE OR REPLACE PROCEDURE `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsinv (input_tbl string, input_col string, output_tbl string, output_col string)
 
-
-if object_id('normsdist') is not null
 BEGIN
-  DROP FUNCTION normsdist
-END
-GO
+  declare zero int64 default 0;
+  declare one int64 default 1;
+  declare half numeric(2,1) default 0.5;
+  declare split1 decimal(4,3) default 0.425;
+  declare split2 decimal(2,1) default 5.0;
+  declare const1 float64 default 0.180625;
+  declare const2 float64 default 1.6;
 
-CREATE FUNCTION dbo.normsdist (@x float)
-RETURNS float
-AS
-BEGIN
-  declare @t float
-  declare @z float
-  declare @ans float
+  declare a0 float64 default 3.3871328727963665;
+  declare a1 float64 default 133.14166789178438;
+  declare a2 float64 default 1971.5909503065514;
+  declare a3 float64 default 13731.693765509461;
+  declare a4 float64 default 45921.95393154987;
+  declare a5 float64 default 67265.7709270087;
+  declare a6 float64 default 33430.575583588128;
+  declare a7 float64 default 2509.0809287301227;
 
-  declare @a1 float
-  declare @a2 float
-  declare @a3 float
-  declare @a4 float
-  declare @a5 float
-  declare @a6 float
-  declare @a7 float
-  declare @a8 float
-  declare @a9 float
-  declare @a10 float
+  declare b1 float64 default 42.313330701600911;
+  declare b2 float64 default 687.18700749205789;
+  declare b3 float64 default 5394.1960214247511;
+  declare b4 float64 default 21213.794301586597;
+  declare b5 float64 default 39307.895800092709;
+  declare b6 float64 default 28729.085735721943;
+  declare b7 float64 default 5226.495278852544;
 
-  set @a1 = 0.17087277
-  set @a2 = -0.82215223
-  set @a3 = 1.48851587
-  set @a4 = -1.13520398
-  set @a5 = 0.27886807
-  set @a6 = -0.18628806
-  set @a7 = 0.09678418
-  set @a8 = 0.37409196
-  set @a9 = 1.00002368
-  set @a10 = 1.26551223
+  declare c0 float64 default 1.4234371107496835;
+  declare c1 float64 default 4.6303378461565456;
+  declare c2 float64 default 5.769497221460691;
+  declare c3 float64 default 3.6478483247632045;
+  declare c4 float64 default 1.2704582524523684;
+  declare c5 float64 default 0.24178072517745061;
+  declare c6 float64 default 0.022723844989269184;
+  declare c7 float64 default 0.00077454501427834139;
 
-  set @z = ABS(@x)/SQRT(2)
-  set @t = 1/(1+0.5*@z)
-  set ans = @t*exp(-@z*@z-@a10+@t*(@a9+@t*(@a8+@t*(@a7+@t*(@a7+@t*(@a6+@t*(@a5+@t*(@a4+@t*(@a3+@t*(@a2+@t*@a1))))))))))
-  IF (@x > 0)
-    set @ans = 1-@ans
-  return @ans
-END
+  declare d1 float64 default 2.053191626637759;
+  declare d2 float64 default 1.6763848301838038;
+  declare d3 float64 default 0.6897673349851;
+  declare d4 float64 default 0.14810397642748008;
+  declare d5 float64 default 0.0151986666563616457;
+  declare d6 float64 default 0.00054759380849953455;
+  declare d7 float64 default 0.0000000010507500716444169;
 
-if object_id('normsinv') is not null
-begin
-  drop function normsinv
-end
-go
+  declare e0 float64 default 6.6570946435011033;
+  declare e1 float64 default 5.4637849111641144;
+  declare e2 float64 default 1.7848265399172913;
+  declare e3 float64 default 0.29656057182850487;
+  declare e4 float64 default 0.026532189526576124;
+  declare e5 float64 default 0.0012426609473880784;
+  declare e6 float64 default 0.000027115555687434876;
+  declare e7 float64 default 0.00000020103343992922882;
 
-create function dbo.normsinv (@p float)
-RETURNS float
-as
-BEGIN
-  declare @zero decimal(2,1)
-  declare @one int
-  declare @half decimal(2,1)
-  declare @split1 decimal(4,3)
-  declare @split2 decimal(2,1)
-  declare @const1 float
-  declare @const2 float
-  declare @q float
-  declare @r float
-  declare @PPND16 float
+  declare f1 float64 default 0.599832206555888;
+  declare f2 float64 default 0.13692988092273581;
+  declare f3 float64 default 0.014875361290850615;
+  declare f4 float64 default 0.00078686913114561329;
+  declare f5 float64 default 0.000018463183175100548;
+  declare f6 float64 default 0.0000001421511758316446;
+  declare f7 float64 default 0.0000000000000020442631033899397;
 
-  set @zero = 0.0
-  set @one = 1.0
-  set @half = 0.5
-  set @split1 = 0.425
-  set @split3 = 5.0
-  set @const1 = 0.180625
-  set @const2 = 1.6
+  execute immediate
+  "create or replace table "||output_tbl||" as"||
+  " with recursive int_calc as" ||
+  " (" ||
+    " select p, q, r," ||
+    " case when p >= 1 then 0" ||
+    " when abs(q) <= "||split1||" then" ||
+    " q * ((((((("||a7||"*r+"||a6||")*r+"||a5||")*r+"||a4||")*r+"||a3||")*r+"||a2||")*r+"||a1||")*r+"||a0||") / ((((((("||b7||"*r+"||b6||")*r+"||b5||")*r+"||b4||")*r+"||b3||")*r+"||b2||")*r+"||b1||")*r+"||one||")" ||
 
-  declare @a0 float
-  declare @a1 float
-  declare @a2 float
-  declare @a3 float
-  declare @a4 float
-  declare @a5 float
-  declare @a6 float
-  declare @a7 float
-  set @a0 = 3.3871328727963665
-  set @a1 = 133.14166789178438
-  set @a2 = 1971.5909503065514
-  set @a3 = 13731.693765509461
-  set @a4 = 45921.95393154987
-  set @a5 = 67265.7709270087
-  set @a6 = 33430.575583588128
-  set @a7 2509.0809287301227
-  declare @b1 float
-  declare @b2 float
-  declare @b3 float
-  declare @b4 float
-  declare @b5 float
-  declare @b6 float
-  declare @b7 float
-  set @b1 = 42.313330701600911
-  set @b2 = 687.18700749205789
-  set @b3 = 5394.1960214247511
-  set @b4 = 21213.794301586597
-  set @b5 = 39307.895800092709
-  set @b6 = 28729.085735721943
-  set @b7 = 5226.495278852544
-  declare @c0 float
-  declare @c1 float
-  declare @c2 float
-  declare @c3 float
-  declare @c4 float
-  declare @c5 float
-  declare @c6 float
-  declare @c7 float
-  set @c0 = 1.4234371107496835
-  set @c1 = 4.6303378461565456
-  set @c2 = 5.769497221460691
-  set @c3 = 3.6478483247632045
-  set @c4 = 1.2704582524523684
-  set @c5 = 0.24178072517745061
-  set @c6 = 0.022723844989269184
-  set @c7 = 0.00077454501427834139
-  declare @d1 float
-  declare @d2 float
-  declare @d3 float
-  declare @d4 float
-  declare @d5 float
-  declare @d6 float
-  declare @d7 float
-  declare @d8 float
-  set @d1 = 2.053191626637759
-  set @d2 = 1.6763848301838038
-  set @d3 = 0.6897673349851
-  set @d4 = 0.14810397642748008
-  set @d5 = 0.0151986666563616457
-  set @d6 = 0.00054759380849953455
-  set @d7 = 0.0000000010507500716444169
-  declare @e0 float
-  declare @e1 float
-  declare @e2 float
-  declare @e3 float
-  declare @e4 float
-  declare @e5 float
-  declare @e6 float
-  declare @e7 float
-  set @e0 = 6.6570946435011033
-  set @e1 = 5.4637849111641144
-  set @e2 = 1.7848265399172913
-  set @e3 = 0.29656057182850487
-  set @e4 = 0.026532189526576124
-  set @e5 = 0.0012426609473880784
-  set @e6 = 0.000027115555687434876
-  set @e7 = 0.00000020103343992922882
-  declare @f1 float
-  declare @f2 float
-  declare @f3 float
-  declare @f4 float
-  declare @f5 float
-  declare @f6 float
-  declare @f7 float
-  set @f1 = 0.599832206555888
-  set @f2 = 0.13692988092273581
-  set @f3 = 0.014875361290850615
-  set @f4 = 0.00078686913114561329
-  set @f5 = 0.000018463183175100548
-  set @f6 = 0.0000001421511758316446
-  set @f7 = 0.0000000000000020442631033899397
+    " when abs(q) > "||split1||" and r < "||split2||" then" ||
+    " ((((((("||c7||"*(r-"||const2||")+"||c6||")*(r-"||const2||")+"||c5||")*(r-"||const2||")+"||c4||")*(r-"||const2||")+"||c3||")*(r-"||const2||")+"||c2||")*(r-"||const2||")+"||c1||")*(r-"||const2||")+"||c0||") / ((((((("||d7||"*(r-"||const2||")+"||d6||")*(r-"||const2||")+"||d5||")*(r-"||const2||")+"||d4||")*(r-"||const2||")+"||d3||")*(r-"||const2||")+"||d2||")*(r-"||const2||")+"||d1||")*(r-"||const2||")+"||one||")" ||
 
-  set @q = @p - @half
+    " else ((((((("||e7||"*(r-"||split2||")+"||e6||")*(r-"||split2||")+"||e5||")*(r-"||split2||")+"||e4||")*(r-"||split2||")+"||e3||")*(r-"||split2||")+"||e2||")*(r-"||split2||")+"||e1||")*(r-"||split2||")+"||e0||") / ((((((("||f7||"*(r-"||split2||")+"||f6||")*(r-"||split2||")+"||f5||")*(r-"||split2||")+"||f4||")*(r-"||split2||")+"||f3||")*(r-"||split2||")+"||f2||")*(r-"||split2||")+"||f1||")*(r-"||split2||")+"||one||")" ||
+    " end as ppnd16_int" ||
 
-  if(ABS(@q)) <= @split1)
-    begin
-      set @r = @const1 - @q * @q
-      set @PPND16 = @q * (((((((@a7*@r+@a6)*@r+@a5)*@r+@a4)*@r+@a3)*@r+@a2)*@r+@a1)*@r+@a0) / (((((((@b7*@r+@b6)*@r+@b5)*@r+@b4)*@r+@b3)*@r+@b2)*@r+@b1)*@r+@one)
-      return @PPND16
-    end
-  else
-    begin
-      if(@q <0)
-        set @r=@p
-      else
-        set @r = @one - @p
+    " from (select p, (p - "||half||") as q," ||
+    " case when abs(p - "||half||") <= "||split1||" then "||const1||" - power((p - "||half||"), 2)" ||
+    " when p >= 1 then 0.1" ||
+    " when (abs(p - "||half||") > "||split1||") and (p < "||half||") then sqrt(-log(p))" ||
+    " else sqrt(-log((1 - p))) end as r," ||
+    " from " ||input_tbl||
+    " )" ||
+  " )" ||
+  " select p," ||
+  " case when (abs(p - "||half||") > "||split1||") and (p < "||half||") then -ppnd16_int" ||
+  " else ppnd16_int end as "||output_col||
+  " from int_calc" ||
+  " order by p;";
+END;
 
-      if(@r <=@zero)
-        begin
-          set @PPND16 = @zero
-          return @PPND
-        end
+/*TEST NORMSDIST FUNCTION*/
+--CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsinv("`dmn01_rsk_mvs_raw`.T1", "p", "`dmn01_rsk_mvs_raw`.T3", "normsinv_out");
 
-      set @r=SQRT(-LOG(@r))
-
-      if(@r <= @split2)
-        begin
-          set @r= @r - @const2
-          set @PPND16 = (((((((@c7*@r+@c6)*@r+@c5)*@r+@c4)*@r+@c3)*@r+@c2)*@r+@c1)*@r+@c0) / (((((((@d7*@r+@d6)*@r+@d5)*@r+@d4)*@r+@d3)*@r+@d2)*@r+@d1)*@r+@one)
-        end
-      else
-        begin
-          set @r = @r - @split2
-          set @PPND16 = (((((((@e7*@r+@e6)*@r+@e5)*@r+@e4)*@r+@e3)*@r+@e2)*@r+@e1)*@r+@e0) / (((((((@f7*@r+@f6)*@r+@f5)*@r+@f4)*@r+@f3)*@r+@f2)*@r+@f1)*@r+@one)
-        end
-      if(@q < @zero)
-        set @PPND16 = -@PPND16
-      return @PPDN16
-    end
-  return @PPDN16
-END
-
-/*test inverse function of the cumulative normal distribution function*/
---DROP TABLE ##TMP1;
---SELECT *
---dbo.normsinv(prop) AS norms_inv_out
---INTO ##TMP1
---FROM dbo.T1
-
---SELECT * FROM ##TMP1
-
-/*1C. CREATE NORMAL DISTRIBUTION PROBABILITY DENSITY FUNCTION (I.E NOT CUMULATIVE)*/
 
 /*2. CREATE SIMULATED TABLE WITH 1 MILLION RECORDS*/
 
 /*2A. CREATE INITIAL VARIABLE FOR TABLE*/
 /*--https://dba.stackexchange.com/questions/130392/generate-and-insert-1-million-rows-into-simple-table*/
+/*NB: NEED TO UPDATE ROW COUNT (/100 AS p) IN BELOW CALCULATION, DEPENDING ON TABLE SIZE*/
 
-if object_id('T1') is not null
-begin
-    drop table T1
-end
-go
-
-WITH Ten(N) AS
+CREATE OR REPLACE TABLE dmn01_rsk_mvs_raw.T1 AS
+WITH RECURSIVE Ten AS
 (
-  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+  SELECT 1  as one UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
   SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
   SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1
 )
-SELECT
-  id = IDENTITY(int, 1, 1)
-INTO dbo.T1
-FROM Ten T10
+SELECT ten.one,
+row_number() over() AS id,
+(row_number() over())/100 AS prop
+FROM Ten
 CROSS JOIN Ten T100
 --CROSS JOIN Ten T1000
 --CROSS JOIN Ten T10000
 --CROSS JOIN Ten T100000
 --CROSS JOIN Ten T1000000
-;
+ORDER BY id;
 
-ALTER TABLE dbo.T1
-ADD a AS CONVERT(varchar(11), id);
-
-/*NB: NEED TO UPDATE ROW COUNT IN BELOW CALCULATION, DEPENDING ON TABLE SIZE*/
-ALTER TABLE dbo.T1
-ADD prop AS CONVERT(float, id/100.00);
 
 /*3. CREATE A RANDOM VARIABLE FOR EACH ROW*/
 
 /*3A. CREATE A VIEW THAT RETURNS SELECT RAND()*/
-if object_id('cr_sample_randView') is not null
-begin
-  drop view cr_sample_randView
-end
-go
 
-create view cr_sample_randView
-as
-select rand() as random_number
-go
+create or replace view dmn01_rsk_mvs_raw.cr_sample_randView as
+select rand() as random_number;
 
 /*3B. CREATE A UDF THAT SELECTS THE VALUE FROM THE VIEW*/
-if object_id('cr_sample_fnPerRowRand') is not null
-begin
-  drop function cr_sample_fnPerRowRand
-end
-go
 
-create function cr_sample_fnPerRowRand()
-returns float
-as begin
-  declare @returnValue float
-  select @returnValue = random_number from cr_sample_randView
-  return @returnValue
-end
-go
+create or replace function dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand() as (
+  (select random_number from dmn01_rsk_mvs_raw.cr_sample_randView)
+);
+
 
 /*3C. Before selecting your data, seed the rand() function, and then use the UDF in your select statement.*/
 --select rand(200); --see the rand() function
@@ -363,63 +199,61 @@ go
 /*4. BUILDING THE TABLE OUT TO CREATE THE TABLE REQUIRED AS INPUT TABLE TO RWA CALCUATION*/
 
 /4a. Define the fields in the table*/
-ALTER TABLE dbo.T1
-ADD
-  ACC_OWNER_ID varchar(50)
-  ,START_DATE date
-  ,R_PD float
-  ,PRODUCT varchar(50)
-  ,SUB_PRODUCT varchar(50)
-  ,CRE_FLAG int
-  ,Reg_CCF float
-  ,DRAWN decimal(15,2)
-  ,PROVISIONS decimal(15,2)
-  ,UNDRAWN decimal(15,2)
-  ,DEFAULT_STATUS varchar(10)
-  ,COUNTRY varchar(100)
-  ,ASSET_CLASS_IND int
-  ,RISK_GRADE int
-  ,BU_ID int
-  ,BUS_UNIT varchar(50)
-  ,SUB_BUSINESS_UNIT_NAME varchar(50)
-  ,PRA_ASSET_CLASS varchar(50)
-  ,SECTOR varchar(50)
-  ,LEGAL_ENTITY varchar(50)
-  ,DEFAULT_IND int
-  ,RWA_SCALING int /*Using this field as the indicator for the FI Asset Correlation Scalar Indicator: if 0 then scalar = 1, if 1 then scalar = 1.25*/
-  ,BASEL_APPROACH varchar(50)
-  ,BASEL_ASSET_CLASS varchar(50)
-  ,SLOTTING_CATEGORY int
-  ,MATURITY float
-  ,TURNOVER float
-  ,SME_SCALAR float
-  ,RATING_ID varchar(50)
-  ,LGD_EXTERNAL float
-  ,R_EAD float
-  ,RAND_NORM_1 float
-  ,RAND_NORM_2 float
-  ,RAND_UNIF_1 float
-  ,RAND_UNIF_2 float
-  ,R float
-  ,b float
-  ,N float
-  ,K float
-  ,RW float
-  ,RWA float
-  ,R_EL float
+ALTER TABLE dmn01_rsk_mvs_raw.T1
+  ADD COLUMN ACC_OWNER_ID string
+  ,ADD COLUMN START_DATE date
+  ,ADD COLUMN R_PD float64
+  ,ADD COLUMN PRODUCT string
+  ,ADD COLUMN SUB_PRODUCT string
+  ,ADD COLUMN CRE_FLAG int64
+  ,ADD COLUMN Reg_CCF float64
+  ,ADD COLUMN DRAWN float64
+  ,ADD COLUMN PROVISIONS float64
+  ,ADD COLUMN UNDRAWN float64
+  ,ADD COLUMN DEFAULT_STATUS string
+  ,ADD COLUMN COUNTRY string
+  ,ADD COLUMN ASSET_CLASS_IND int64
+  ,ADD COLUMN RISK_GRADE int64
+  ,ADD COLUMN BU_ID int64
+  ,ADD COLUMN BUS_UNIT string
+  ,ADD COLUMN SUB_BUSINESS_UNIT_NAME string
+  ,ADD COLUMN PRA_ASSET_CLASS string
+  ,ADD COLUMN SECTOR string
+  ,ADD COLUMN LEGAL_ENTITY string
+  ,ADD COLUMN DEFAULT_IND int64
+  ,ADD COLUMN RWA_SCALING int64 /*Using this field as the indicator for the FI Asset Correlation Scalar Indicator: if 0 then scalar = 1, if 1 then scalar = 1.25*/
+  ,ADD COLUMN BASEL_APPROACH string
+  ,ADD COLUMN BASEL_ASSET_CLASS string
+  ,ADD COLUMN SLOTTING_CATEGORY int64
+  ,ADD COLUMN MATURITY float64
+  ,ADD COLUMN TURNOVER float64
+  ,ADD COLUMN SME_SCALAR float64
+  ,ADD COLUMN RATING_ID string
+  ,ADD COLUMN LGD_EXTERNAL float64
+  ,ADD COLUMN R_EAD float64
+  ,ADD COLUMN RAND_NORM_1 float64
+  ,ADD COLUMN RAND_NORM_2 float64
+  ,ADD COLUMN RAND_UNIF_1 float64
+  ,ADD COLUMN RAND_UNIF_2 float64
+  ,ADD COLUMN R float64
+  ,ADD COLUMN b float64
+  ,ADD COLUMN N float64
+  ,ADD COLUMN K float64
+  ,ADD COLUMN RW float64
+  ,ADD COLUMN RWA float64
+  ,ADD COLUMN R_EL float64;
 
 /*4b. Simulate key variables, Step 1: Use Random Normal Variables to Generate Drawn and Undrawn.  Also allocate proportions of the population to asset classes*/
 
-SELECT RAND(200) /*SET THE SEED TO MAKE RANDOM NUMBER GENERATION IN NET UPDATE REPLICABLE*/
+--SELECT FARM_FINGERPRINT('MATTS_BIG_DAY_OUT'); /*SET THE SEED TO MAKE RANDOM NUMBER GENERATION IN NET UPDATE REPLICABLE*/
 
-UPDATE dbo.T1
-  SET
-  ,PRODUCT = 'GC (exc CRE)'
+UPDATE dmn01_rsk_mvs_raw.T1
+  SET PRODUCT = 'GC (exc CRE)'
   ,CRE_FLAG = 0
-  ,Reg_CCF float = 0.75
-  ,DRAWN = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
-  ,PROVISIONS decimal(15,2) = dbo.cr_sample_fnPerRowRand()
-  ,UNDRAWN decimal(15,2) = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 12000000 + 2000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
+  ,Reg_CCF = 0.75
+  ,DRAWN = (SQRT(-2*LOG(dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))*SIN(2*ACOS(-1)*dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand())) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+  ,PROVISIONS = dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()
+  ,UNDRAWN = (SQRT(-2*LOG(dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))*SIN(2*ACOS(-1)*dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand())) * 12000000 + 2000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
   --,DEFAULT_STATUS varchar(10)
   --,COUNTRY varchar(100)
   --,ASSET_CLASS_IND int
@@ -437,16 +271,16 @@ UPDATE dbo.T1
   ELSE 0 END
   ,BASEL_APPROACH =
   CASE WHEN PROP > 0.9 THEN 'Standardised'
-  ELSE 0 END
+  ELSE 'F-IRB' END
   ,BASEL_ASSET_CLASS =
   CASE WHEN prop <= 0.75 AND prop > 0 THEN 'CORPORATES - MAIN'
   WHEN prop <= 0.85 AND prop >0.75 THEN 'CORPORATES - SME'
   WHEN prop <= 0.9 AND prop >0.85 THEN 'INSTITUTIONS'
   WHEN prop <= 0.98 AND prop >0.9 THEN 'CORPORATES'
-  WHEN prop <= 0.9 THEN 'INSTITUTIONS'
+  WHEN prop <= 0.9 THEN 'INSTITUTIONS' END
   --,SLOTTING_CATEGORY int
-  ,MATURITY = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 1.5 + 2.5 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
-  ,TURNOVER = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 10 + 25 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+  ,MATURITY = (SQRT(-2*LOG(dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))*SIN(2*ACOS(-1)*dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand())) * 1.5 + 2.5 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+  ,TURNOVER = (SQRT(-2*LOG(dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))*SIN(2*ACOS(-1)*dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand())) * 10 + 25 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
   ,SME_SCALAR =
   CASE WHEN prop <= 0.85 AND prop > 0.75 THEN 0.7619 /*F-IRB Corporate SME all set to have SME scalar*/
   WHEN prop <= 0.75 AND prop > 0.72 THEN 0.7619 /*F-IRB Corporate Main: small portion set to have SME scalar*/
@@ -455,10 +289,14 @@ UPDATE dbo.T1
   ,RATING_ID = 'corp'
   ,LGD_EXTERNAL = 45/100.00
   --,R_EAD float
-  ,RAND_NORM_1 = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand()))
-  ,RAND_NORM_2 = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand()))
-  ,RAND_UNIF_1 = dbo.cr_sample_fnPerRowRand()
-  ,RAND_UNIF_2 = dbo.cr_sample_fnPerRowRand()
+  ,RAND_NORM_1 = (SQRT(-2*LOG(dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))*SIN(2*ACOS(-1)*dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))
+  ,RAND_NORM_2 = (SQRT(-2*LOG(dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))*SIN(2*ACOS(-1)*dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()))
+  ,RAND_UNIF_1 = dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()
+  ,RAND_UNIF_2 = dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()
+  WHERE true;
+
+
+ABS(MOD(FARM_FINGERPRINT(cast(id as string)), 1000))/1000
 
 /*4c. Merge on rating information to generate PDs and Provision rates.
 To control distribution across rating grades, took proportions from Global Corporates (exc CRE) Dec, generated cumulative percentiles, turned those into thresholds in normal space
@@ -622,3 +460,178 @@ UPDATE dbo.T2
   (dbo.normsdist(N) - R_PD) * SME_SCALAR * LGD_EXTERNAL * 12.5 * 1.06 * EAD END
 
   ,R_EL = R_PD * LGD_EXTERNAL * R_EAD
+
+
+
+/*scratchpad**************************************/
+CREATE OR REPLACE TABLE `dmn01_rsk_mvs_raw`.T1 AS
+WITH RECURSIVE Ten AS
+(
+  SELECT 1  as one UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1
+)
+SELECT ten.one,
+row_number() over() AS id,
+(row_number() over())/100 AS p
+FROM Ten
+CROSS JOIN Ten T100;
+
+
+SELECT * FROM `dmn01_rsk_mvs_raw`.T1 order by id;
+
+
+
+
+SELECT
+row_number() over(order by one asc) AS id
+FROM Ten;
+
+SELECT * FROM `dmn01_rsk_mvs_raw`.T1 order by id;
+
+
+CREATE OR REPLACE PROCEDURE --IF NOT EXISTS
+`dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist (
+  input_tbl STRING
+  ,input_col STRING
+  --,OUT output_tbl STRING
+  --,OUT output_col STRING
+  )
+BEGIN
+
+  declare a1 float64 DEFAULT 0.17087277;
+  declare a2 float64 DEFAULT -0.82215223;
+  declare a3 float64 DEFAULT 1.48851587;
+  declare a4 float64 DEFAULT -1.13520398;
+  declare a5 float64 DEFAULT 0.27886807;
+  declare a6 float64 DEFAULT -0.18628806;
+  declare a7 float64 DEFAULT 0.09678418;
+  declare a8 float64 DEFAULT 0.37409196;
+  declare a9 float64 DEFAULT 1.00002368;
+  declare a10 float64 DEFAULT 1.26551223;
+
+  create temp table tmp_out (normsdist_out float64);
+
+  EXECUTE IMMEDIATE
+    "insert into tmp_out " ||
+    "with recursive int_calcs as " ||
+    "(select " ||
+    "abs("||input_col||")/sqrt(2) as z, " ||
+    "1 / (1 + 0.5*(abs("||input_col||")/sqrt(2))) as t " ||
+    "from "||input_tbl||") " ||
+    "select t*exp(-z*z-" ||a10||"+t*("||a9||"+t*("||a8||"+t*("||a7||"+t*("||a6||"+t*("||a5||"+t*("||a4||"+t*("||a3||"+t*("||a2||"+t*"||a1||"))))))))/2) " ||
+    "from int_calcs;";
+
+END;
+
+CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist("`dmn01_rsk_mvs_raw`.T1", "id");
+
+CREATE OR REPLACE TABLE `dmn01_rsk_mvs_raw`.T1 AS
+WITH RECURSIVE Ten AS
+(
+  SELECT 1 AS one UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+  SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1
+)
+SELECT
+row_number() over(order by one asc) AS id
+FROM Ten;
+
+SELECT * FROM `dmn01_rsk_mvs_raw`.T1 order by id;
+
+
+CREATE OR REPLACE PROCEDURE `fhoffa.x.pivot`(
+  table_name STRING
+  , destination_table STRING
+  , row_ids ARRAY<STRING>
+  , pivot_col_name STRING
+  , pivot_col_value STRING
+  , max_columns INT64
+  , aggregation STRING
+  , optional_limit STRING
+  )
+BEGIN
+  DECLARE pivotter STRING;
+  EXECUTE IMMEDIATE (
+    "SELECT STRING_AGG(' "||aggregation
+    ||"""(IF('||@pivot_col_name||'="'||x.value||'", '||@pivot_col_value||', null)) e_'||fhoffa.x.normalize_col_name(x.value))
+   FROM UNNEST((
+       SELECT APPROX_TOP_COUNT("""||pivot_col_name||", @max_columns) FROM `"||table_name||"`)) x"
+  ) INTO pivotter
+  USING pivot_col_name AS pivot_col_name, pivot_col_value AS pivot_col_value, max_columns AS max_columns;
+  EXECUTE IMMEDIATE (
+   'CREATE OR REPLACE TABLE `'||destination_table
+   ||'` AS SELECT '
+   ||(SELECT STRING_AGG(x) FROM UNNEST(row_ids) x)
+   ||', '||pivotter
+   ||' FROM `'||table_name||'` GROUP BY '
+   || (SELECT STRING_AGG(''||(i+1)) FROM UNNEST(row_ids) WITH OFFSET i)||' ORDER BY '
+   || (SELECT STRING_AGG(''||(i+1)) FROM UNNEST(row_ids) WITH OFFSET i)
+   ||' '||optional_limit
+  );
+END;
+
+
+create or replace temp table tmp_out(id int64, normsdist_out float64);
+insert into tmp_out
+      with int_calcs as
+      (select id
+        ,abs(id)/sqrt(2) as z
+        , 1 / (1 + 0.5*(abs(id)/sqrt(2))) as t
+      from `dmn01_rsk_mvs_raw`.T1)
+    select id as id, z as normsdist_out
+    from int_calcs;
+
+    select a.*, b.normsdist_out
+    from `dmn01_rsk_mvs_raw`.T1 a
+    join tmp_out b;
+
+    UPDATE dmn01_rsk_mvs_raw.T1
+      SET PRODUCT = 'GC (exc CRE)'
+      ,CRE_FLAG = 0
+      ,Reg_CCF = 0.75
+      ,DRAWN = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+      ,PROVISIONS = dbo.cr_sample_fnPerRowRand()
+      ,UNDRAWN = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 12000000 + 2000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
+      --,DEFAULT_STATUS varchar(10)
+      --,COUNTRY varchar(100)
+      --,ASSET_CLASS_IND int
+      --,RISK_GRADE int
+      --,BU_ID int
+      --,BUS_UNIT varchar(50)
+      --,SUB_BUSINESS_UNIT_NAME varchar(50)
+      --,PRA_ASSET_CLASS varchar(50)
+      --,SECTOR varchar(50)
+      --,LEGAL_ENTITY varchar(50)
+      --,DEFAULT_IND int
+      ,RWA_SCALING =
+      CASE WHEN prop <= 0.07 AND prop >0 THEN 1
+      WHEN prop <= 0.9 and prop > 0.88 THEN 1
+      ELSE 0 END
+      ,BASEL_APPROACH =
+      CASE WHEN PROP > 0.9 THEN 'Standardised'
+      ELSE 0 END
+      ,BASEL_ASSET_CLASS =
+      CASE WHEN prop <= 0.75 AND prop > 0 THEN 'CORPORATES - MAIN'
+      WHEN prop <= 0.85 AND prop >0.75 THEN 'CORPORATES - SME'
+      WHEN prop <= 0.9 AND prop >0.85 THEN 'INSTITUTIONS'
+      WHEN prop <= 0.98 AND prop >0.9 THEN 'CORPORATES'
+      WHEN prop <= 0.9 THEN 'INSTITUTIONS' END
+      --,SLOTTING_CATEGORY int
+      ,MATURITY = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 1.5 + 2.5 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+      ,TURNOVER = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand())) * 10 + 25 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+      ,SME_SCALAR =
+      CASE WHEN prop <= 0.85 AND prop > 0.75 THEN 0.7619 /*F-IRB Corporate SME all set to have SME scalar*/
+      WHEN prop <= 0.75 AND prop > 0.72 THEN 0.7619 /*F-IRB Corporate Main: small portion set to have SME scalar*/
+      WHEN prop <= 0.86 AND prop > 0.85 THEN 0.7619 /*F-IRB Institutions: small portion set to have SME scalar*/
+      ELSE 1 END
+      ,RATING_ID = 'corp'
+      ,LGD_EXTERNAL = 45/100.00
+      --,R_EAD float
+      ,RAND_NORM_1 = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand()))
+      ,RAND_NORM_2 = (SQRT(-2*LOG(dbo.cr_sample_fnPerRowRand()))*SIN(2*PI()*dbo.cr_sample_fnPerRowRand()))
+      ,RAND_UNIF_1 = dbo.cr_sample_fnPerRowRand()
+      ,RAND_UNIF_2 = dbo.cr_sample_fnPerRowRand()
+      WHERE true;
+
+      -4880344.42
