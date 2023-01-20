@@ -250,9 +250,9 @@ UPDATE dmn01_rsk_mvs_raw.T1
   SET PRODUCT = 'GC (exc CRE)'
   ,CRE_FLAG = 0
   ,Reg_CCF = 0.75
-  ,DRAWN = (SQRT(-2*LOG(ABS(MOD(FARM_FINGERPRINT(cast(id as string)), 1000))/1000))*SIN(2*ACOS(-1)*ABS(MOD(FARM_FINGERPRINT(cast((id+1) as string)), 1000))/1000)) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+  ,DRAWN = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64))/100000.000)) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
   ,PROVISIONS = dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()
-  ,UNDRAWN = (SQRT(-2*LOG(ABS(MOD(FARM_FINGERPRINT(cast((id+2) as string)), 1000))/1000))*SIN(2*ACOS(-1)*ABS(MOD(FARM_FINGERPRINT(cast((id+3) as string)), 1000))/1000)) * 12000000 + 2000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
+  ,UNDRAWN = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+2 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+3 as string))), 61, 64) as int64))/100000.000)) * 12000000 + 2000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
   --,DEFAULT_STATUS varchar(10)
   --,COUNTRY varchar(100)
   --,ASSET_CLASS_IND int
@@ -278,8 +278,8 @@ UPDATE dmn01_rsk_mvs_raw.T1
   WHEN prop <= 0.98 AND prop >0.9 THEN 'CORPORATES'
   WHEN prop <= 0.9 THEN 'INSTITUTIONS' END
   --,SLOTTING_CATEGORY int
-  ,MATURITY = (SQRT(-2*LOG(ABS(MOD(FARM_FINGERPRINT(cast((id+4) as string)), 1000))/1000))*SIN(2*ACOS(-1)*ABS(MOD(FARM_FINGERPRINT(cast((id+5) as string)), 1000))/1000)) * 1.5 + 2.5 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
-  ,TURNOVER = (SQRT(-2*LOG(ABS(MOD(FARM_FINGERPRINT(cast((id+6) as string)), 1000))/1000))*SIN(2*ACOS(-1)*ABS(MOD(FARM_FINGERPRINT(cast((id+7) as string)), 1000))/1000)) * 10 + 25 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+  ,MATURITY = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+4 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+5 as string))), 61, 64) as int64))/100000.000)) * 1.5 + 2.5 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+  ,TURNOVER = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+6 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+7 as string))), 61, 64) as int64))/100000.000)) * 10 + 25 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
   ,SME_SCALAR =
   CASE WHEN prop <= 0.85 AND prop > 0.75 THEN 0.7619 /*F-IRB Corporate SME all set to have SME scalar*/
   WHEN prop <= 0.75 AND prop > 0.72 THEN 0.7619 /*F-IRB Corporate Main: small portion set to have SME scalar*/
@@ -288,10 +288,10 @@ UPDATE dmn01_rsk_mvs_raw.T1
   ,RATING_ID = 'corp'
   ,LGD_EXTERNAL = 45/100.00
   --,R_EAD float
-  ,RAND_NORM_1 = (SQRT(-2*LOG(ABS(MOD(FARM_FINGERPRINT(cast((id+8) as string)), 1000))/1000))*SIN(2*ACOS(-1)*ABS(MOD(FARM_FINGERPRINT(cast((id+9) as string)), 1000))/1000))
-  ,RAND_NORM_2 = (SQRT(-2*LOG(ABS(MOD(FARM_FINGERPRINT(cast((id+10) as string)), 1000))/1000))*SIN(2*ACOS(-1)*ABS(MOD(FARM_FINGERPRINT(cast((id+11) as string)), 1000))/1000))
-  ,RAND_UNIF_1 = ABS(MOD(FARM_FINGERPRINT(cast((id+12) as string)), 1000))/1000
-  ,RAND_UNIF_2 = ABS(MOD(FARM_FINGERPRINT(cast((id+13) as string)), 1000))/1000
+  ,RAND_NORM_1 = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+8 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+9 as string))), 61, 64) as int64))/100000.000))
+  ,RAND_NORM_2 = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+10 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+11 as string))), 61, 64) as int64))/100000.000))
+  ,RAND_UNIF_1 = abs(cast("0x"||substring(to_hex(sha256(cast(id+12 as string))), 61, 64) as int64))/100000.000
+  ,RAND_UNIF_2 = abs(cast("0x"||substring(to_hex(sha256(cast(id+13 as string))), 61, 64) as int64))/100000.000
   WHERE true;
 
 
@@ -460,5 +460,3 @@ UPDATE dmn01_rsk_mvs_raw.T4
 
   ,R_EL = R_PD * LGD_EXTERNAL * R_EAD
   WHERE true;
-
-/*scratchpad**************************************/
