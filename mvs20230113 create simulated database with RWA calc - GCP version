@@ -251,8 +251,8 @@ UPDATE dmn01_rsk_mvs_raw.T1
   ,CRE_FLAG = 0
   ,Reg_CCF = 0.75
   ,DRAWN = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64))/100000.000)) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
-  ,PROVISIONS = dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()
-  ,UNDRAWN = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+2 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+3 as string))), 61, 64) as int64))/100000.000)) * 12000000 + 2000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
+  --,PROVISIONS = dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()
+  ,UNDRAWN = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+2 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+3 as string))), 61, 64) as int64))/100000.000)) * 12000000 + 3000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
   --,DEFAULT_STATUS varchar(10)
   --,COUNTRY varchar(100)
   --,ASSET_CLASS_IND int
@@ -322,6 +322,10 @@ UPDATE dmn01_rsk_mvs_raw.T2
   ELSE DRAWN END
 
   ,UNDRAWN =
+  CASE WHEN UNDRAWN < 0 THEN 0
+  ELSE UNDRAWN END
+
+  ,PROVISIONS =
   CASE WHEN (DRAWN < 0) AND (UNDRAWN < 0) THEN 0
   WHEN (DRAWN < 0) AND (UNDRAWN >0) THEN UNDRAWN * 0.5 * PROV_RATE_PC
   WHEN (DRAWN > 0) AND (UNDRAWN <0) THEN DRAWN * PROV_RATE_PC
