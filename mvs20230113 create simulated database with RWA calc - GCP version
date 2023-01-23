@@ -3,53 +3,127 @@
 /*1. CREATE REQUIRED USER DEFINED FUNCTIONS*/
 
 /*1A. CUMULATIVE NORMAL DISTRIBUTION FUNCTION*/
-/*Adapted from --https://stackoverflow.com/questions/4417005/how-can-we-achieve-standard-normal-cdf-in-oracle-sql-or-pl-sql*/
-
-/*1. CREATE REQUIRED USER DEFINED FUNCTIONS*/
-
-/*1A. CUMULATIVE NORMAL DISTRIBUTION FUNCTION*/
-/*Adapted from --https://stackoverflow.com/questions/4417005/how-can-we-achieve-standard-normal-cdf-in-oracle-sql-or-pl-sql*/
+/*
+ADAPTED FROM --https://formaldev.blogspot.com/2012/09/T-SQL-NORMDIST-5.html?m=1
+Author:    Eli Algranti
+Description:  Standard Normal Distribution
+      Cumulative Distribution Function
+      using a rational polynomial
+      approximation to erf() from
+      W. J. Cody 1969
+*/
 
 CREATE OR REPLACE PROCEDURE --IF NOT EXISTS
-`dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist (
+`dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3 (
   input_tbl STRING
   ,input_col STRING
   ,output_tbl STRING
   ,output_col STRING
   )
 BEGIN
+  DECLARE pA0 FLOAT64 DEFAULT 3.209377589138469472562E03;
+  DECLARE pA1 FLOAT64 DEFAULT 3.774852376853020208137E02;
+  DECLARE pA2 FLOAT64 DEFAULT 1.138641541510501556495E02;
+  DECLARE pA3 FLOAT64 DEFAULT 3.161123743870565596947E00;
+  DECLARE pA4 FLOAT64 DEFAULT 1.857777061846031526730E-01;
 
-  declare a1 float64 DEFAULT 0.17087277;
-  declare a2 float64 DEFAULT -0.82215223;
-  declare a3 float64 DEFAULT 1.48851587;
-  declare a4 float64 DEFAULT -1.13520398;
-  declare a5 float64 DEFAULT 0.27886807;
-  declare a6 float64 DEFAULT -0.18628806;
-  declare a7 float64 DEFAULT 0.09678418;
-  declare a8 float64 DEFAULT 0.37409196;
-  declare a9 float64 DEFAULT 1.00002368;
-  declare a10 float64 DEFAULT 1.26551223;
+  DECLARE qA0 FLOAT64 DEFAULT 2.844236833439170622273E03;
+  DECLARE qA1 FLOAT64 DEFAULT 1.282616526077372275645E03;
+  DECLARE qA2 FLOAT64 DEFAULT 2.440246379344441733056E02;
+  DECLARE qA3 FLOAT64 DEFAULT 2.360129095234412093499E01;
+  DECLARE qA4 FLOAT64 DEFAULT 1.000000000000000000000E00;
+
+  DECLARE pB0 FLOAT64 DEFAULT 1.23033935479799725272E03;
+  DECLARE pB1 FLOAT64 DEFAULT 2.05107837782607146532E03;
+  DECLARE pB2 FLOAT64 DEFAULT 1.71204761263407058314E03;
+  DECLARE pB3 FLOAT64 DEFAULT 8.81952221241769090411E02;
+  DECLARE pB4 FLOAT64 DEFAULT 2.98635138197400131132E02;
+  DECLARE pB5 FLOAT64 DEFAULT 6.61191906371416294775E01;
+  DECLARE pB6 FLOAT64 DEFAULT 8.88314979438837594118E00;
+  DECLARE pB7 FLOAT64 DEFAULT 5.64188496988670089180E-01;
+  DECLARE pB8 FLOAT64 DEFAULT 2.15311535474403846343E-08;
+
+  DECLARE qB0 FLOAT64 DEFAULT 1.23033935480374942043E03;
+  DECLARE qB1 FLOAT64 DEFAULT 3.43936767414372163696E03;
+  DECLARE qB2 FLOAT64 DEFAULT 4.36261909014324715820E03;
+  DECLARE qB3 FLOAT64 DEFAULT 3.29079923573345962678E03;
+  DECLARE qB4 FLOAT64 DEFAULT 1.62138957456669018874E03;
+  DECLARE qB5 FLOAT64 DEFAULT 5.37181101862009857509E02;
+  DECLARE qB6 FLOAT64 DEFAULT 1.17693950891312499305E02;
+  DECLARE qB7 FLOAT64 DEFAULT 1.57449261107098347253E01;
+  DECLARE qB8 FLOAT64 DEFAULT 1.00000000000000000000E00;
+
+  DECLARE pC0 FLOAT64 DEFAULT -6.58749161529837803157E-04;
+  DECLARE pC1 FLOAT64 DEFAULT -1.60837851487422766278E-02;
+  DECLARE pC2 FLOAT64 DEFAULT -1.25781726111229246204E-01;
+  DECLARE pC3 FLOAT64 DEFAULT -3.60344899949804439429E-01;
+  DECLARE pC4 FLOAT64 DEFAULT -3.05326634961232344035E-01;
+  DECLARE pC5 FLOAT64 DEFAULT -1.63153871373020978498E-02;
+
+  DECLARE qC0 FLOAT64 DEFAULT 2.33520497626869185443E-03;
+  DECLARE qC1 FLOAT64 DEFAULT 6.05183413124413191178E-02;
+  DECLARE qC2 FLOAT64 DEFAULT 5.27905102951428412248E-01;
+  DECLARE qC3 FLOAT64 DEFAULT 1.87295284992346047209E00;
+  DECLARE qC4 FLOAT64 DEFAULT 2.56852019228982242072E00;
+  DECLARE qC5 FLOAT64 DEFAULT 1.00000000000000000000E00;
+
+  DECLARE pi FLOAT64 DEFAULT 3.141592653589793238462643383;
 
   EXECUTE IMMEDIATE
-    "create or replace table "||output_tbl||" as" ||
-    " with recursive int_calcs as " ||
-    "(select *"||
-    ", abs("||input_col||")/sqrt(2) as z" ||
-    ", 1 / (1 + 0.5*(abs("||input_col||")/sqrt(2))) as t " ||
-    "from "||input_tbl||") " ||
-    "select *, case when "||input_col||" >0 then 1 - t*exp(-z*z-" ||a10||"+t*("||a9||"+t*("||a8||"+t*("||a7||"+t*("||a6||"+t*("||a5||"+t*("||a4||"+t*("||a3||"+t*("||a2||"+t*"||a1||")))))))))/2 " ||
-    "else t*exp(-z*z-" ||a10||"+t*("||a9||"+t*("||a8||"+t*("||a7||"+t*("||a6||"+t*("||a5||"+t*("||a4||"+t*("||a3||"+t*("||a2||"+t*"||a1||")))))))))/2 end as "||output_col||
-    " from int_calcs;";
+  "create or replace table "||output_tbl||" as" ||
+  " with recursive int_calcs as" ||
+  " (select *," ||
+  " case when Z >=11.0 then 1" ||
+  " when Z <= 0.46786 then" ||
+  "   Z * ("||pA0||" + "||pA1||"*Z2 + "||pA2||"*Z4 + "||pA3||"*Z6 + "||pA4||"*Z8) /" ||
+  "         ("||qA0||" + "||qA1||"*Z2 + "||qA2||"*Z4 + "||qA3||"*Z6 + "||qA4||"*Z8)" ||
+  " when Z <= 4.0 then" ||
+  "   1.0 - EXP(-Z2) * ("||pB0||" + "||pB1||"*Z + "||pB2||"*Z2 + "||pB3||"*Z3 + "||pB4||"*Z4" ||
+  "                 + "||pB5||"*Z5 + "||pB6||"*Z6 + "||pB7||"*Z7 + "||pB8||"*Z8) /" ||
+  "                 ("||qB0||" + "||qB1||"*Z + "||qB2||"*Z2 + "||qB3||"*Z3 + "||qB4||"*Z4" ||
+  "                 + "||qB5||"*Z5 + "||qB6||"*Z6 + "||qB7||"*Z7 + "||qB8||"*Z8)" ||
+  " else" ||
+  "   (1 - EXP(-Z2)/Z * (1/SQRT("||pi||") + 1/(Z2)*" ||
+  "               (("||pC0||" + "||pC1||"*Z2 + "||pC2||"*Z4 + "||pC3||"*Z6 + "||pC4||"*Z8 + "||pC5||"*Z10) /" ||
+  "                 ("||qC0||" + "||qC1||"*Z2 + "||qC2||"*Z4 + "||qC3||"*Z6 + "||qC4||"*Z8 + "||qC5||"*Z10)))) END as ERF" ||
+" from(select *" ||
+"  , abs("||input_col||")/sqrt(2) as Z" ||
+"  , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z2" ||
+"  , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z3" ||
+"  , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z4" ||
+"  , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z5" ||
+"  , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z6" ||
+"  , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z7" ||
+" , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z8" ||
+"  , (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) * (abs("||input_col||")/sqrt(2)) as Z10" ||
+"   from "||input_tbl||"))" ||
+" select *," ||
+" case when "||input_col||" > 0 then 0.5*(1+ERF)" ||
+" else 1 - 0.5*(1+ERF) end as "||output_col||
+" from int_calcs;";
+
+ EXECUTE IMMEDIATE
+  " alter table "||output_tbl||
+  " drop column Z" ||
+  " ,drop column Z2" ||
+  " ,drop column Z3" ||
+  " ,drop column Z4" ||
+  " ,drop column Z5" ||
+  " ,drop column Z6" ||
+  " ,drop column Z7" ||
+  " ,drop column Z8" ||
+  " ,drop column Z10" ||
+  " ,drop column ERF;";
 END;
 
 /*TEST NORMSDIST FUNCTION*/
---CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist("`dmn01_rsk_mvs_raw`.T1", "id", "`dmn01_rsk_mvs_raw`.T2", "normsdist_id");
+--CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3("dmn01_rsk_mvs_raw.T3", "normsinv_out", "`dmn01_rsk_mvs_raw`.T4", "normsdist_out");
 
 
 /*1B. CREATE NORMSINV FUNCTION (INVERSE OF THE CUMULATIVE NORMAL DIST FUNCTION*/
 /*BASED ON VB CODE FROM THIS SITE: --https://github.com/garcianc/PPND16/blob/master/ppnd16.vb
 This site gives a VB translation of the FORTRAN code published in Michael J. Wichura, Applied Statistics, vol. 37, 1988, pp. 477-484*/
-/*Returns 0 if input is outside of bounds of [0,1]*/
+/*Returns 11 if input is outside of bounds of [0,1]*/
 
 CREATE OR REPLACE PROCEDURE `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsinv (input_tbl string, input_col string, output_tbl string, output_col string)
 
@@ -118,7 +192,7 @@ BEGIN
   " with recursive int_calc as" ||
   " (" ||
     " select *," ||
-    " case when "||input_col||" >= 1 then 0" ||
+    " case when "||input_col||" >= 1 then 11" ||
     " when abs(q) <= "||split1||" then" ||
     " q * ((((((("||a7||"*r+"||a6||")*r+"||a5||")*r+"||a4||")*r+"||a3||")*r+"||a2||")*r+"||a1||")*r+"||a0||") / ((((((("||b7||"*r+"||b6||")*r+"||b5||")*r+"||b4||")*r+"||b3||")*r+"||b2||")*r+"||b1||")*r+"||one||")" ||
 
@@ -141,6 +215,13 @@ BEGIN
   " else ppnd16_int end as "||output_col||
   " from int_calc" ||
   " order by "||input_col||";";
+
+  EXECUTE IMMEDIATE
+   " alter table "||output_tbl||
+   " drop column  q" ||
+   " ,drop column r" ||
+   " ,drop column ppnd16_int;";
+
 END;
 
 /*TEST NORMSINV FUNCTION*/
@@ -160,31 +241,32 @@ WITH RECURSIVE Ten AS
   SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
   SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1
 )
-SELECT ten.one,
+SELECT
 row_number() over() AS id,
 (row_number() over())/100 AS prop
 FROM Ten
 CROSS JOIN Ten T100
---CROSS JOIN Ten T1000
+CROSS JOIN Ten T1000
 --CROSS JOIN Ten T10000
 --CROSS JOIN Ten T100000
 --CROSS JOIN Ten T1000000
-ORDER BY id;
+--CROSS JOIN Ten T10000000
+--ORDER BY id
+;
 
 
-/*3. CREATE A RANDOM VARIABLE FOR EACH ROW*/
+/*3. CREATE A RANDOM VARIABLE FOR EACH ROW - NB: GOOGLE STANDARD SQL DOES NOT ALLOW SEEDING OF RAND() FUNCTION - THEREFORE DIFFERENT APPROACH TO 3 USED (SHA256 IN STEP4)*/
 
 /*3A. CREATE A VIEW THAT RETURNS SELECT RAND()*/
 
-create or replace view dmn01_rsk_mvs_raw.cr_sample_randView as
-select rand() as random_number;
+--create or replace view dmn01_rsk_mvs_raw.cr_sample_randView as
+--select rand() as random_number;
 
 /*3B. CREATE A UDF THAT SELECTS THE VALUE FROM THE VIEW*/
 
-create or replace function dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand() as (
-  (select random_number from dmn01_rsk_mvs_raw.cr_sample_randView)
-);
-
+--create or replace function dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand() as (
+--  (select random_number from dmn01_rsk_mvs_raw.cr_sample_randView)
+--);
 
 /*3C. Before selecting your data, seed the rand() function, and then use the UDF in your select statement.*/
 --select rand(200); --see the rand() function
@@ -227,7 +309,8 @@ ALTER TABLE dmn01_rsk_mvs_raw.T1
   ,ADD COLUMN SLOTTING_CATEGORY int64
   ,ADD COLUMN MATURITY float64
   ,ADD COLUMN TURNOVER float64
-  ,ADD COLUMN SME_SCALAR float64
+  ,ADD COLUMN SME_SCALAR_IND int64
+  ,ADD COLUMN SME_SCALAR_VALUE float64
   ,ADD COLUMN RATING_ID string
   ,ADD COLUMN LGD_EXTERNAL float64
   ,ADD COLUMN R_EAD float64
@@ -243,7 +326,7 @@ ALTER TABLE dmn01_rsk_mvs_raw.T1
   ,ADD COLUMN RWA float64
   ,ADD COLUMN R_EL float64;
 
-/*4b. Simulate key variables, Step 1: Use Random Normal Variables to Generate Drawn and Undrawn.  Also allocate proportions of the population to asset classes*/
+/*4b. Simulate key variables, Step 1: Use Random Normal Variables to Generate Drawn and Undrawn.  Also allocate "||input_col||"ortions of the population to asset classes*/
 /*For ref on using FARM_FINGERPRINT: --https://stackoverflow.com/questions/46019624/how-to-do-repeatable-sampling-in-bigquery-standard-sql*/
 
 UPDATE dmn01_rsk_mvs_raw.T1
@@ -269,7 +352,7 @@ UPDATE dmn01_rsk_mvs_raw.T1
   WHEN prop <= 0.9 and prop > 0.88 THEN 1
   ELSE 0 END
   ,BASEL_APPROACH =
-  CASE WHEN PROP > 0.9 THEN 'Standardised'
+  CASE WHEN prop > 0.9 THEN 'Standardised'
   ELSE 'F-IRB' END
   ,BASEL_ASSET_CLASS =
   CASE WHEN prop <= 0.75 AND prop > 0 THEN 'CORPORATES - MAIN'
@@ -280,7 +363,12 @@ UPDATE dmn01_rsk_mvs_raw.T1
   --,SLOTTING_CATEGORY int
   ,MATURITY = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+4 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+5 as string))), 61, 64) as int64))/100000.000)) * 1.5 + 2.5 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
   ,TURNOVER = (SQRT(-2*LOG(abs(cast("0x"||substring(to_hex(sha256(cast(id+6 as string))), 61, 64) as int64))/100000.000))*SIN(2*ACOS(-1)*abs(cast("0x"||substring(to_hex(sha256(cast(id+7 as string))), 61, 64) as int64))/100000.000)) * 10 + 25 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
-  ,SME_SCALAR =
+  ,SME_SCALAR_IND =
+  CASE WHEN prop <= 0.85 AND prop > 0.75 THEN 1 /*F-IRB Corporate SME all set to have SME scalar*/
+  WHEN prop <= 0.75 AND prop > 0.72 THEN 1 /*F-IRB Corporate Main: small portion set to have SME scalar*/
+  WHEN prop <= 0.86 AND prop > 0.85 THEN 1 /*F-IRB Institutions: small portion set to have SME scalar*/
+  ELSE 0 END
+  ,SME_SCALAR_VALUE =
   CASE WHEN prop <= 0.85 AND prop > 0.75 THEN 0.7619 /*F-IRB Corporate SME all set to have SME scalar*/
   WHEN prop <= 0.75 AND prop > 0.72 THEN 0.7619 /*F-IRB Corporate Main: small portion set to have SME scalar*/
   WHEN prop <= 0.86 AND prop > 0.85 THEN 0.7619 /*F-IRB Institutions: small portion set to have SME scalar*/
@@ -297,7 +385,7 @@ UPDATE dmn01_rsk_mvs_raw.T1
 
 
 /*4c. Merge on rating information to generate PDs and Provision rates.
-To control distribution across rating grades, took proportions from Global Corporates (exc CRE) Dec, generated cumulative percentiles, turned those into thresholds in normal space
+To control distribution across rating grades, took "||input_col||"ortions from Global Corporates (exc CRE) Dec, generated cumulative percentiles, turned those into thresholds in normal space
 and then compared random norm variables to thresholds.
 This step merges on info based on the random normal variable outturn compared to the thresholds
 RATING_INFO table imported into DB as a csv file*/
@@ -311,7 +399,7 @@ on T1.RAND_NORM_1 < RATING_INFO.FREQ_THRESH_UPPER and T1.RAND_NORM_1 >= RATING_I
 
 drop table dmn01_rsk_mvs_raw.T1;
 
-/*4d. Cap and Floor fields where appropriate (wouldn't need to do that if 'Greatest' and 'Least' functions supported).
+/*4d. Cap and Floor fields where ap"||input_col||"riate (wouldn't need to do that if 'Greatest' and 'Least' functions supported).
 Also make 'second step' adjustments where field values depend on outcomes of first update*/
 
 UPDATE dmn01_rsk_mvs_raw.T2
@@ -412,7 +500,7 @@ UPDATE dmn01_rsk_mvs_raw.T2
 
   WHERE true;
 
-/*NEED TO THINK ABOUT DOING THIS FOR EACH BU - I.E PROPORTIONS TAKEN FOR EACH BU*/
+/*NEED TO THINK ABOUT DOING THIS FOR EACH BU - I.E "||input_col||"ORTIONS TAKEN FOR EACH BU*/
 
 /*5. CALCULATE RWA*/
 
@@ -428,7 +516,7 @@ UPDATE dmn01_rsk_mvs_raw.T2
   WHEN ASSET_CLASS_IND = 4 THEN
   0.15
   WHEN ASSET_CLASS_IND = 7 THEN
-  0.12 * (1 - EXP(-50 * R_PD))/(1 - EXP(-50)) + 0.24 * (1 - (1 - EXP(-50 * R_PD))/(1 - EXP(-50))) * 1.25
+  (0.12 * (1 - EXP(-50 * R_PD))/(1 - EXP(-50)) + 0.24 * (1 - (1 - EXP(-50 * R_PD))/(1 - EXP(-50)))) * 1.25
   END
 
   ,b=POWER((0.11852 - 0.05478 * LOG(R_PD)),2)
@@ -442,25 +530,25 @@ UPDATE dmn01_rsk_mvs_raw.T3
   POWER((1 - R_ASSET_CORRELATION),-0.5)*R_PD_NORMSINV+POWER((R_ASSET_CORRELATION/(1 - R_ASSET_CORRELATION)),0.5)*3.090232
   WHERE true;
 
-CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsdist("dmn01_rsk_mvs_raw.T3", "N", "dmn01_rsk_mvs_raw.T4", "NORMSDIST_N");
+CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3("dmn01_rsk_mvs_raw.T3", "N", "dmn01_rsk_mvs_raw.T4", "NORMSDIST_N");
 
 UPDATE dmn01_rsk_mvs_raw.T4
   SET
   K =
   CASE WHEN ASSET_CLASS_IND = 1 THEN
-  (NORMSDIST_N - R_PD) / (1 - 1.5*b) * (1 + (MATURITY - 2.5) * b) * SME_SCALAR END
+  (NORMSDIST_N - R_PD) / (1 - 1.5*b) * (1 + (MATURITY - 2.5) * b) * SME_SCALAR_VALUE END
 
   ,RW =
   /*RW = K * LGD * 12.5 * 1.06*/
   CASE WHEN ASSET_CLASS_IND = 1 THEN
-  (NORMSDIST_N - R_PD) / (1 - 1.5*b) * (1 + (MATURITY - 2.5) * b) * SME_SCALAR * LGD_EXTERNAL * 12.5 * 1.06 END
+  (NORMSDIST_N - R_PD) / (1 - 1.5*b) * (1 + (MATURITY - 2.5) * b) * SME_SCALAR_VALUE * LGD_EXTERNAL * 12.5 * 1.06 END
 
   ,RWA =
   /*RWA = RW * R_EAD*/
   CASE WHEN ASSET_CLASS_IND <= 2 OR ASSET_CLASS_IND = 7 THEN
-  (NORMSDIST_N - R_PD) / (1 - 1.5*b) * (1 + (MATURITY - 2.5) * b) * SME_SCALAR * LGD_EXTERNAL * 12.5 * 1.06 * R_EAD
+  (NORMSDIST_N - R_PD) / (1 - 1.5*b) * (1 + (MATURITY - 2.5) * b) * SME_SCALAR_VALUE * LGD_EXTERNAL * 12.5 * 1.06 * R_EAD
   WHEN ASSET_CLASS_IND >= 3 AND ASSET_CLASS_IND <=4 THEN
-  (NORMSDIST_N - R_PD) * SME_SCALAR * LGD_EXTERNAL * 12.5 * 1.06 * R_EAD END
+  (NORMSDIST_N - R_PD) * SME_SCALAR_VALUE * LGD_EXTERNAL * 12.5 * 1.06 * R_EAD END
 
   ,R_EL = R_PD * LGD_EXTERNAL * R_EAD
   WHERE true;
