@@ -223,3 +223,17 @@ BEGIN
 END;
 END //
 delimiter ;
+
+
+cd dbt-matt
+python3 -m venv dbt-venv
+source dbt-venv/bin/activate
+pip install dbt-bigquery
+
+echo "# dbt-tutorial" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/matt-salisbury/dbt-tutorial.git
+git push -u origin main
