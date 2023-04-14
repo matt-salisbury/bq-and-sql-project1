@@ -233,7 +233,14 @@ pip install dbt-bigquery
 echo "# dbt-tutorial" >> README.md
 git init
 git add README.md
-git commit -m "first commit"
+git commit -m "Create a dbt project"
 git branch -M main
+git remote add origin https://github.com/matt-salisbury/dbt-tutorial.git
+git push -u origin main
+
+git init
+git branch -M main
+git add .
+git commit -m "Create a dbt project"
 git remote add origin https://github.com/matt-salisbury/dbt-tutorial.git
 git push -u origin main
