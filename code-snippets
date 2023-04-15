@@ -225,18 +225,22 @@ END //
 delimiter ;
 
 
-cd dbt-matt
+cd dbt
 sudo python3 -m venv dbt-venv
 source dbt-venv/bin/activate
-sudo pip install dbt-bigquery
+sudo -H pip install dbt-bigquery
 
-echo "# dbt-tutorial" >> README.md
-git init
-git add README.md
-git commit -m "Create a dbt project"
-git branch -M main
-git remote add origin https://github.com/matt-salisbury/dbt-tutorial.git
-git push -u origin main
+dbt --version
+dbt init jaffle_shop
+cd jaffle_shop
+pwd
+dbt debug
+
+#may need
+#gcloud auth application-default login
+#https://cloud.google.com/sdk/gcloud/reference/auth/application-default
+
+dbt run
 
 git init
 git branch -M main
