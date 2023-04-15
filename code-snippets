@@ -226,9 +226,9 @@ delimiter ;
 
 
 cd dbt-matt
-python3 -m venv dbt-venv
+sudo python3 -m venv dbt-venv
 source dbt-venv/bin/activate
-pip install dbt-bigquery
+sudo pip install dbt-bigquery
 
 echo "# dbt-tutorial" >> README.md
 git init
