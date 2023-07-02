@@ -1,4 +1,4 @@
---CREATE SCHEMA `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw;
+--CREATE SCHEMA `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_raw OPTIONS (location='europe-west2');
 
 /*1. CREATE REQUIRED USER DEFINED FUNCTIONS*/
 
@@ -14,7 +14,7 @@ Description:  Standard Normal Distribution
 */
 
 CREATE OR REPLACE PROCEDURE --IF NOT EXISTS
-`dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3 (
+`dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3 (
   input_tbl STRING
   ,input_col STRING
   ,output_tbl STRING
@@ -117,7 +117,7 @@ BEGIN
 END;
 
 /*TEST NORMSDIST FUNCTION*/
---CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3("dmn01_rsk_mvs_raw.T3", "normsinv_out", "`dmn01_rsk_mvs_raw`.T4", "normsdist_out");
+--CALL `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3("dmn01_rsk_mvs_raw.T3", "normsinv_out", "`dmn01_rsk_mvs_raw`.T4", "normsdist_out");
 
 
 /*1B. CREATE NORMSINV FUNCTION (INVERSE OF THE CUMULATIVE NORMAL DIST FUNCTION*/
@@ -125,7 +125,7 @@ END;
 This site gives a VB translation of the FORTRAN code published in Michael J. Wichura, Applied Statistics, vol. 37, 1988, pp. 477-484*/
 /*Returns 11 if input is outside of bounds of [0,1]*/
 
-CREATE OR REPLACE PROCEDURE `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsinv (input_tbl string, input_col string, output_tbl string, output_col string)
+CREATE OR REPLACE PROCEDURE `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_raw.normsinv (input_tbl string, input_col string, output_tbl string, output_col string)
 
 BEGIN
   declare zero int64 default 0;
@@ -225,7 +225,7 @@ BEGIN
 END;
 
 /*TEST NORMSINV FUNCTION*/
---CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsinv("`dmn01_rsk_mvs_raw`.T1", "prop", "`dmn01_rsk_mvs_raw`.T3", "normsinv_out");
+--CALL `dmn01-rskcda-ide-15-5c77`.dmn01_rsk_mvs_raw.normsinv("`dmn01_rsk_mvs_raw`.T1", "prop", "`dmn01_rsk_mvs_raw`.T3", "normsinv_out");
 
 
 /*2. CREATE SIMULATED TABLE WITH 1 MILLION RECORDS*/
@@ -243,11 +243,11 @@ WITH RECURSIVE Ten AS
 )
 SELECT
 row_number() over() AS id,
-(row_number() over())/100 AS prop
+(row_number() over())/10000 AS prop
 FROM Ten
 CROSS JOIN Ten T100
 CROSS JOIN Ten T1000
---CROSS JOIN Ten T10000
+CROSS JOIN Ten T10000
 --CROSS JOIN Ten T100000
 --CROSS JOIN Ten T1000000
 --CROSS JOIN Ten T10000000
@@ -522,7 +522,7 @@ UPDATE dmn01_rsk_mvs_raw.T2
   ,b=POWER((0.11852 - 0.05478 * LOG(R_PD)),2)
   WHERE true;
 
-CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.normsinv("dmn01_rsk_mvs_raw.T2", "R_PD", "dmn01_rsk_mvs_raw.T3", "R_PD_NORMSINV");
+CALL `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_raw.normsinv("dmn01_rsk_mvs_raw.T2", "R_PD", "dmn01_rsk_mvs_raw.T3", "R_PD_NORMSINV");
 
 UPDATE dmn01_rsk_mvs_raw.T3
   SET
@@ -530,7 +530,7 @@ UPDATE dmn01_rsk_mvs_raw.T3
   POWER((1 - R_ASSET_CORRELATION),-0.5)*R_PD_NORMSINV+POWER((R_ASSET_CORRELATION/(1 - R_ASSET_CORRELATION)),0.5)*3.090232
   WHERE true;
 
-CALL `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3("dmn01_rsk_mvs_raw.T3", "N", "dmn01_rsk_mvs_raw.T4", "NORMSDIST_N");
+CALL `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_raw.StdNormalDistributionCDF_3("dmn01_rsk_mvs_raw.T3", "N", "dmn01_rsk_mvs_raw.T4", "NORMSDIST_N");
 
 UPDATE dmn01_rsk_mvs_raw.T4
   SET
