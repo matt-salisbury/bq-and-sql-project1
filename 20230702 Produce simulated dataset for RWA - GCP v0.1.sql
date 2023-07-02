@@ -1,6 +1,6 @@
-/*1. CREATE SCHEMA (IF NEEDED)
+/*1. CREATE SCHEMA (IF NEEDED)*/
 
--- CREATE SCHEMA `dmn01-rsksoi-bld-01-2017`.dmn01_rsk_mvs_raw;
+CREATE SCHEMA `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_b3p1;
 
 /*2. CREATE SIMULATED TABLE WITH 1 MILLION RECORDS*/
 
@@ -8,7 +8,7 @@
 /*--https://dba.stackexchange.com/questions/130392/generate-and-insert-1-million-rows-into-simple-table*/
 /*NB: NEED TO UPDATE ROW COUNT (/100 AS p) IN BELOW CALCULATION, DEPENDING ON TABLE SIZE*/
 
-CREATE OR REPLACE TABLE dmn01_rsk_mvs_raw.T1 AS
+CREATE OR REPLACE TABLE dmn01_rsk_mvs_b3p1.T1 AS
 WITH RECURSIVE Ten AS
 (
   SELECT 1  as one UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
@@ -31,21 +31,123 @@ CROSS JOIN Ten T1000
 /*3. BUILDING THE TABLE OUT TO CREATE THE TABLE REQUIRED AS INPUT TABLE TO RWA CALCUATION*/
 
 /*3a. Define the fields in the table*/
-ALTER TABLE dmn01_rsk_mvs_raw.T1
-  ADD COLUMN ACC_OWNER_ID string
-  ,ADD COLUMN START_DATE date
+ALTER TABLE dmn01_rsk_mvs_b3p1.B3p1T1
+  ADD column FACILITY_ID string
+  ,column CUSTOMER_ID string
+  ,column LBG_PRODUCT_CODE string
+  ,column LBG_MODEL_CODE float64
+  ,column CRAG_ID string
+  ,column LARGE_EXPOSURE_GROUP_ID string
+  ,column COUNTRY_OF_DOMICLE string
+  ,column UK_LOCAL_AUTHORITY_IND int64
+  ,column DRAWN_PRE_CRM float64
+  ,column CRM float64
+  ,column PRODUCT_TYPE_FOR_CCF_CLASSIFICATION string
+  ,column OFF_BALANCE_SHEET_EXP_PRE_CCF float64
+  ,column ST_EXPOSURE_CLASS string
+  ,column RFB_FLAG int64
+  ,column RFB_SUBSIDIARY_FLAG int64
+  ,column NRFB_SUBSIDIARY_FLAG int64
+  ,column LEGAL_ENTITY_DETAILED string
+  ,column COMPANY_CODE_SNS_SPLIT string
+  ,column ECAI_INSTITUTION_RATING_OBLIGOR string
+  ,column ECAI_RATING_SCALE_OBLIGOR string
+  ,column ECAI_INSTITION_RATING_SHORT_TERM_EXPOSURE_SPECIFIC string
+  ,column ECAI_RATING_SCALE_SHORT_TERM_EXPOSURE_SPECIFIC string
+  ,column EXP_SPECIFIC_SHORT_TERM_ECAI_RATING string
+  ,column ECAI_INSTITION_RATING_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE string
+  ,column ECAI_RATING_SCALE_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE string
+  ,column WORST_SHORT_TERM_ECAI_RATING_FROM_ANY_OTHER_EXPOSURE string
+  ,column EXPORT_CREDIT_AGENCY_RATING_MEIP int64
+  ,column EXPORT_CREDIT_AGENCY_INSTITUTION string
+  ,column MATURITY_AT_ORIGINATION float64
+  ,column EXP_RELATED_TO_GOODS_CROSS_INT_BORDERS_FLAG int64
+  ,column FI_CET1_RATIO float64
+  ,column FI_LEVERAGE_RATIO float64
+  ,column OBLIGOR_SOVEREIGN string
+  ,column ECAI_INSTITION_RATING_SOVEREIGN string
+  ,column SOVEREIGN_ECAI_RATING string
+  ,column SOVEREIGN_FLOOR_APPLICABLE int64
+  ,column UNRATED_INSTITION_CREDIT_ASSESSMENT string
+  ,column UNRATED_CORP_INV_GRADE_IND int64
+  ,column CORP_SPECIALIST_LENDING_CAT int64
+  ,column TRANSACTOR_CLASSIFICATION int64
+  ,column EXP_TO_OWN_PENSION_FUND_OR_OWN_EMPLOYEE int64
+  ,column OBLIGOR_CLASSIFICATION_IND_OR_FIRM string
+  ,column GROUP_TOTAL_GROSS_EXP_INC_CON_COUNTERPARTIES float64
+  ,column PRODUCT_TYPE_FOR_RETAIL_CLASSIFICATION string
+  ,column RETAIL_RESIDENTIAL_IND int64
+  ,column RE_IND int64
+  ,column RE_UNHEDGED_LENDING_WITH_CUR_MISMATCH float64
+  ,column RE_LE_BOOKING_HOLDS_1ST_CHARGE int64
+  ,column RE_CRE_IND int64
+  ,column RE_DEV_FLAG int64
+  ,column SECURED_FLAG int64
+  ,column RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN float64
+  ,column RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION float64
+  ,column RE_VAL_AT_ORIG float64
+  ,column RE_DATE_OF_ORIG_VAL float64
+  ,column RE_VAL_AT_LATEST_FA float64
+  ,column RE_DATE_OF_VAL_AT_LATEST_FA float64
+  ,column RE_VAL_AT_LATEST_VAL float64
+  ,column RE_REASON_FOR_LATEST_VAL string
+  ,column RE_LTV_AT_ORIG_PRESENT_AT_20250101 int64
+  ,column RE_INDEX_VALUATION float64
+  ,column RE_DATE_OF_INDEX_VALUATION date
+  ,column RE_VAL_PLEDGED_OFFSET_DEPOSIT float64
+  ,column RE_DATE_OF_VALUE_OF_LEDGED_OFFSET_DEPOSIT float64
+  ,column RE_SECURED_ON_HMO int64
+  ,column RE_DEPENDS_ON_RENTS int64
+  ,column RE_PRIMARY_RESIDENCE int64
+  ,column RE_OBLIGOR_NUM_PROPERTIES_EXC_PRIMARY_RES int64
+  ,column SOCIAL_HOUSING_FLAG int64
+  ,column RE_ADC_PRE_SALES_SIGNIF int64
+  ,column RE_ADC_BOR_EQ_SIGNIF int64
+  ,column DEFAULT_IND int64
+  ,column PROVISIONS float64
+  ,column HIGH_RISK_ITEM_IND int64
+  ,column COVERED_BOND_IND int64
+  ,column CIU_IND int64
+  ,column EQUITY_IND int64
+  ,column EQUITY_CAP_DEDUCT_TREAT_IND int64
+  ,column EQ_ARTICLE_89_IND int64
+  ,column EQ_ARTICLE_48_IND int64
+  ,column VC_IND int64
+  ,column SUB_DEBT_IND int64
+  ,column OTHER_ITEMS_TYPE string
+  ,column TURNOVER_LATEST float64
+  ,column TURNOVER_1YR_PRIOR float64
+  ,column TURNOVER_2YR_PRIOR float64
+  ,column TOTAL_ASSESTS_OBLIGOR float64
+  ,column SME_IND int64
+  ,column RESIDUAL_VALUE_IND int64
+  ,column RESIDUAL_VALUE float64
+  ,column YEARS_TO_RESIDUAL_VALUE_REALISATION float64
+  --END OF B3p1 STANDARDISED REQUIRED VARIABLES
+  ,column BASEL_RESIDUAL_MATURITY float64
+  ,column IRB_APPROACH string
+  ,column IRB_EXPOSURE_SUB_CLASS string
+  ,column ROLL_OUT_ASSET_CLASS string
+  ,column LARGE_OR_UNREG_FINANCIAL_SECTOR_ENT_IND int64
+  ,column CORP_SME_IND int64
+  ,column HVCRE_IND int64
+  ,column IRB_RATING_SCALE string
+  ,column IRB_RATING_GRADE string
+  ,column SLOTTING_RATING_GRADE int64
+  ,column R_LGD float64
+  ,column R_CCF float64
   ;
 
 
 /*3b. Simulate key variables, Step 1: Use Random Normal Variables to Generate Drawn and Undrawn.  Also allocate "||input_col||"ortions of the population to asset classes*/
 /*For ref on using FARM_FINGERPRINT: --https://stackoverflow.com/questions/46019624/how-to-do-repeatable-sampling-in-bigquery-standard-sql*/
 
-UPDATE dmn01_rsk_mvs_raw.T1
+UPDATE dmn01_rsk_mvs_b3p1.T1
   SET PRODUCT = 'GC (exc CRE)'
   ,CRE_FLAG = 0
   ,Reg_CCF = 0.75
   ,DRAWN = (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
-  --,PROVISIONS = dmn01_rsk_mvs_raw.cr_sample_fnPerRowRand()
+  --,PROVISIONS = dmn01_rsk_mvs_b3p1.cr_sample_fnPerRowRand()
   ,UNDRAWN = (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+2 as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+3 as string))), 61, 64) as int64)),0)/100000.000)) * 12000000 + 3000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
   --,DEFAULT_STATUS varchar(10)
   --,COUNTRY varchar(100)
@@ -100,19 +202,19 @@ and then compared random norm variables to thresholds.
 This step merges on info based on the random normal variable outturn compared to the thresholds
 RATING_INFO table imported into DB as a csv file*/
 
-create or replace table dmn01_rsk_mvs_raw.T2 as
+create or replace table dmn01_rsk_mvs_b3p1.T2 as
 select *
-from dmn01_rsk_mvs_raw.T1
-join dmn01_rsk_mvs_raw.RATING_INFO
+from dmn01_rsk_mvs_b3p1.T1
+join dmn01_rsk_mvs_b3p1.RATING_INFO
 --option SUBINTERVAL
 on T1.RAND_NORM_1 < RATING_INFO.FREQ_THRESH_UPPER and T1.RAND_NORM_1 >= RATING_INFO.FREQ_THRESH_LOWER;
 
-drop table dmn01_rsk_mvs_raw.T1;
+drop table dmn01_rsk_mvs_b3p1.T1;
 
 /*3d. Cap and Floor fields where ap"||input_col||"riate (wouldn't need to do that if 'Greatest' and 'Least' functions supported).
 Also make 'second step' adjustments where field values depend on outcomes of first update*/
 
-UPDATE dmn01_rsk_mvs_raw.T2
+UPDATE dmn01_rsk_mvs_b3p1.T2
   SET
   R_PD = R_PD_PC/100.0000
   ,DRAWN =
