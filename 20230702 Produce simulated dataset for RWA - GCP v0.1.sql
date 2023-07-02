@@ -66,6 +66,7 @@ ALTER TABLE dmn01_rsk_mvs_b3p1.T1
   ,add column FI_LEVERAGE_RATIO float64
   ,add column OBLIGOR_SOVEREIGN string
   ,add column ECAI_INSTITION_RATING_SOVEREIGN string
+  ,add column ECAI_RATING_SCALE_SOVEREIGN string
   ,add column SOVEREIGN_ECAI_RATING string
   ,add column SOVEREIGN_FLOOR_APPLICABLE int64
   ,add column UNRATED_INSTITION_CREDIT_ASSESSMENT string
@@ -143,7 +144,174 @@ ALTER TABLE dmn01_rsk_mvs_b3p1.T1
 /*For ref on using FARM_FINGERPRINT: --https://stackoverflow.com/questions/46019624/how-to-do-repeatable-sampling-in-bigquery-standard-sql*/
 
 UPDATE dmn01_rsk_mvs_b3p1.T1
-  SET PRODUCT = 'GC (exc CRE)'
+  SET FACILITY_ID = cast(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0) as string)
+  , CUSTOMER_ID = cast(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0) as string)
+  --, LBG_PRODUCT_CODE
+  --, LBG_MODEL_CODE float64
+  --, CRAG_ID string
+  --, LARGE_EXPOSURE_GROUP_ID string
+  --, COUNTRY_OF_DOMICLE string
+  , UK_LOCAL_AUTHORITY_IND int64
+  , DRAWN_PRE_CRM = (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
+  --, CRM float64
+  
+  , PRODUCT_TYPE_FOR_CCF_CLASSIFICATION = 
+    CASE WHEN prop <= 0.89 AND prop > 0 THEN 'Acceptances'
+    WHEN prop <= 0.944 AND prop >0.89 THEN 'Documentary credits with shipment as collateral and maturity < 1 year'
+    WHEN prop >0.944 THEN 'Unconditionally cancellable' END
+  
+  , OFF_BALANCE_SHEET_EXP_PRE_CCF = (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+2 as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+3 as string))), 61, 64) as int64)),0)/100000.000)) * 12000000 + 3000000 /*random normal with mean 3,000,000 and standard deviation 12,000,000*/
+  
+  , ST_EXPOSURE_CLASS =
+    CASE WHEN prop <= 0.058824 AND prop > 0 THEN 'Central Government and Central Banks'
+    WHEN prop <= 0.11767 AND prop >0.058824 THEN 'Regional Government and Local Authorities'
+    WHEN prop <= 0.176471 AND prop >0.11767 THEN 'Public Sector Entities'
+    WHEN prop <= 0.235294 AND prop >0.176471 THEN 'Multilateral Development Banks'
+    WHEN prop <= 0.294118 AND prop >0.235294 THEN 'Exposures to International Organisations'
+    WHEN prop <= 0.352941 AND prop >0.294118 THEN 'Institutions'
+    WHEN prop <= 0.411765 AND prop >0.352941 THEN 'Corporates'
+    WHEN prop <= 0.470588 AND prop >0.411765 THEN 'Retail Exposures'
+    WHEN prop <= 0.529412 AND prop >0.470588 THEN 'Real Estate'
+    WHEN prop <= 0.588235 AND prop >0.529412 THEN 'Exposures in Default'
+    WHEN prop <= 0.647059 AND prop >0.588235 THEN 'Particularly High Risk Items'
+    WHEN prop <= 0.705882 AND prop >0.647059 THEN 'Covered Bonds'
+    WHEN prop <= 0.764706 AND prop >0.705882 THEN 'Securitisations'
+    WHEN prop <= 0.823529 AND prop >0.764706 THEN 'Exposures to institutions and corporates with short term credit assessments'
+    WHEN prop <= 0.882353 AND prop >0.823529 THEN 'Exposures in the form of units or shares in Collective Investment Undertakings'
+    WHEN prop <= 0.941176 AND prop >0.882353 THEN 'Subordinated Debt, Equity and Other Own Funds Investments'
+    WHEN prop > 0.941176 THEN 'Other Items' END
+  --, RFB_FLAG int64
+  --, RFB_SUBSIDIARY_FLAG int64
+  --, NRFB_SUBSIDIARY_FLAG int64
+  --, LEGAL_ENTITY_DETAILED string
+  --, COMPANY_CODE_SNS_SPLIT string
+  
+  , ECAI_INSTITUTION_RATING_OBLIGOR = "Moody's Investor Service"
+  , ECAI_RATING_SCALE_OBLIGOR = 'Global long-term rating scale'
+  , ECAI_INSTITION_RATING_SHORT_TERM_EXPOSURE_SPECIFIC =
+    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 'No Rating Available'
+    WHEN prop <= 0.352941 and prop > 0.33 THEN "Moody's Investor Service" END
+
+  , ECAI_RATING_SCALE_SHORT_TERM_EXPOSURE_SPECIFIC =
+    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 'No Rating Available'
+    WHEN prop <= 0.352941 and prop > 0.33 THEN 'Global short-term rating scale' END
+  
+  , EXP_SPECIFIC_SHORT_TERM_ECAI_RATING =
+    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 'No Rating Available'
+    WHEN prop <= 0.352941 and prop > 0.33 THEN 'P-1' END
+
+  , ECAI_INSTITION_RATING_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE =
+    CASE WHEN prop <= 0.34 and prop > 0.294118 THEN 'No Rating Available'
+    WHEN prop <= 0.352941 and prop > 0.34 THEN "Moody's Investor Service" END
+  
+  , ECAI_RATING_SCALE_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE =
+    CASE WHEN prop <= 0.34 and prop > 0.294118 THEN 'No Rating Available'
+    WHEN prop <= 0.352941 and prop > 0.34 THEN 'Global short-term rating scale' END
+
+  , WORST_SHORT_TERM_ECAI_RATING_FROM_ANY_OTHER_EXPOSURE =
+    CASE WHEN prop <= 0.34 and prop > 0.294118 THEN 'No Exposure Specific Short Term ECAI Rating Available'
+    WHEN prop <= 0.352941 and prop > 0.34 THEN 'P-2' END
+  
+  , EXPORT_CREDIT_AGENCY_RATING_MEIP =
+    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 0
+    WHEN prop <= 0.345 and prop > 0.33 THEN 1
+    WHEN prop <= 0.352941 and prop > 0.345 THEN 6 END
+
+  , EXPORT_CREDIT_AGENCY_INSTITUTION = 'to be filled'
+  , MATURITY_AT_ORIGINATION = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+12 as string))), 61, 64) as int64))/100000.000 * 12, 1)
+  , EXP_RELATED_TO_GOODS_CROSS_INT_BORDERS_FLAG =
+    CASE WHEN prop <= 0.32 and prop > 0.294118 THEN 0
+    WHEN prop <= 0.352941 and prop > 0.32 THEN 1 END
+  , FI_CET1_RATIO = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+72 as string))), 61, 64) as int64))/100000.000 * 4 + 12, 1)
+  , FI_LEVERAGE_RATIO = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+62 as string))), 61, 64) as int64))/100000.000 * 4 + 3, 1)
+  , OBLIGOR_SOVEREIGN = 'UK'
+  , ECAI_INSTITION_RATING_SOVEREIGN = "Moody's Investor Service"
+  , ECAI_RATING_SCALE_SOVEREIGN = 'Global long-term rating scale'
+  , SOVEREIGN_ECAI_RATING = 'Aa'
+  , SOVEREIGN_FLOOR_APPLICABLE = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+13 as string))), 61, 64) as int64))/100000.000, 0)
+  , UNRATED_INSTITION_CREDIT_ASSESSMENT =
+  CASE WHEN abs(cast("0x"||substring(to_hex(sha256(cast(id+13 as string))), 61, 64) as int64))/100000.000 > 0.5 THEN 'A'
+  ELSE 'A' END
+  --, UNRATED_CORP_INV_GRADE_IND int64
+  , CORP_SPECIALIST_LENDING_CAT = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+9 as string))), 61, 64) as int64))/100000.000 * 5, 0)
+  , TRANSACTOR_CLASSIFICATION = 
+  CASE WHEN abs(cast("0x"||substring(to_hex(sha256(cast(id+17 as string))), 61, 64) as int64))/100000.000 > 0.7 THEN 1
+  ELSE 0 END
+  , EXP_TO_OWN_PENSION_FUND_OR_OWN_EMPLOYEE = 
+  CASE WHEN abs(cast("0x"||substring(to_hex(sha256(cast(id+15 as string))), 61, 64) as int64))/100000.000 > 0.9 THEN 1
+  ELSE 0 END
+  , OBLIGOR_CLASSIFICATION_IND_OR_FIRM  = 
+  CASE WHEN abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.7 THEN 'Corp'
+  ELSE 'Natural Person' END
+  , GROUP_TOTAL_GROSS_EXP_INC_CON_COUNTERPARTIES = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+19 as string))), 61, 64) as int64))/100000.000 * 1000000, 2)
+  , PRODUCT_TYPE_FOR_RETAIL_CLASSIFICATION string
+  , RETAIL_RESIDENTIAL_IND int64
+  , RE_IND int64
+  , RE_UNHEDGED_LENDING_WITH_CUR_MISMATCH float64
+  , RE_LE_BOOKING_HOLDS_1ST_CHARGE int64
+  , RE_CRE_IND int64
+  , RE_DEV_FLAG int64
+  , SECURED_FLAG int64
+  , RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN float64
+  , RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION float64
+  , RE_VAL_AT_ORIG float64
+  , RE_DATE_OF_ORIG_VAL float64
+  , RE_VAL_AT_LATEST_FA float64
+  , RE_DATE_OF_VAL_AT_LATEST_FA float64
+  , RE_VAL_AT_LATEST_VAL float64
+  , RE_REASON_FOR_LATEST_VAL string
+  , RE_LTV_AT_ORIG_PRESENT_AT_20250101 int64
+  , RE_INDEX_VALUATION float64
+  , RE_DATE_OF_INDEX_VALUATION date
+  , RE_VAL_PLEDGED_OFFSET_DEPOSIT float64
+  , RE_DATE_OF_VALUE_OF_LEDGED_OFFSET_DEPOSIT float64
+  , RE_SECURED_ON_HMO int64
+  , RE_DEPENDS_ON_RENTS int64
+  , RE_PRIMARY_RESIDENCE int64
+  , RE_OBLIGOR_NUM_PROPERTIES_EXC_PRIMARY_RES int64
+  , SOCIAL_HOUSING_FLAG int64
+  , RE_ADC_PRE_SALES_SIGNIF int64
+  , RE_ADC_BOR_EQ_SIGNIF int64
+  --, DEFAULT_IND int64
+  --, PROVISIONS float64
+  , HIGH_RISK_ITEM_IND int64
+  , COVERED_BOND_IND int64
+  , CIU_IND int64
+  , EQUITY_IND int64
+  , EQUITY_CAP_DEDUCT_TREAT_IND int64
+  , EQ_ARTICLE_89_IND int64
+  , EQ_ARTICLE_48_IND int64
+  , VC_IND int64
+  , SUB_DEBT_IND int64
+  , OTHER_ITEMS_TYPE string
+  , TURNOVER_LATEST float64
+  , TURNOVER_1YR_PRIOR float64
+  , TURNOVER_2YR_PRIOR float64
+  , TOTAL_ASSESTS_OBLIGOR float64
+  , SME_IND int64
+  , RESIDUAL_VALUE_IND int64
+  , RESIDUAL_VALUE float64
+  , YEARS_TO_RESIDUAL_VALUE_REALISATION float64
+  --END OF B3p1 STANDARDISED REQUIRED VARIABLES
+  , BASEL_RESIDUAL_MATURITY float64
+  , IRB_APPROACH string
+  , IRB_EXPOSURE_SUB_CLASS string
+  , ROLL_OUT_ASSET_CLASS string
+  , LARGE_OR_UNREG_FINANCIAL_SECTOR_ENT_IND int64
+  , CORP_SME_IND int64
+  , HVCRE_IND int64
+  , IRB_RATING_SCALE string
+  , IRB_RATING_GRADE string
+  , SLOTTING_RATING_GRADE int64
+  , R_LGD float64
+  , R_CCF float64
+  
+  
+  
+  
+  
+  
+  PRODUCT = 'GC (exc CRE)'
   ,CRE_FLAG = 0
   ,Reg_CCF = 0.75
   ,DRAWN = (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
@@ -235,7 +403,7 @@ UPDATE dmn01_rsk_mvs_b3p1.T2
   CASE WHEN CMS_RATING = 20 THEN 'DEF'
   ELSE 'NOT_DEF' END
 
-  ,COUNTRY =
+  ,COUNTRY_OF_DOMICLE =
   /*BOS COUNTRY DISTRIBUTION*/
   CASE WHEN (RAND_UNIF_1 <= 0.09580038) AND (RAND_UNIF_2 <= 0.002325581) THEN 'AMERICAS'
   WHEN (RAND_UNIF_1 <= 0.09580038) AND (RAND_UNIF_2 > 0.002325581) AND (RAND_UNIF_2 <= 0.004651163) THEN 'MIDDLE EAST'
@@ -259,30 +427,19 @@ UPDATE dmn01_rsk_mvs_b3p1.T2
   WHEN (RAND_UNIF_1 > 0.84159519) AND (RAND_UNIF_2 > 0.078291815) AND (RAND_UNIF_2 <= 0.080071174) THEN 'GERMANY'
   WHEN (RAND_UNIF_1 > 0.84159519) AND (RAND_UNIF_2 > 0.080071174) AND (RAND_UNIF_2 <= 0.122775801) THEN 'OTHER EUROPE'
   WHEN (RAND_UNIF_1 > 0.84159519) AND (RAND_UNIF_2 > 0.122775801) AND (RAND_UNIF_2 <= 0.4252669) THEN 'UNITED KINGDOM OF GREAT BRITAIN AND NORTHERN IRELAND'
-  WHEN (RAND_UNIF_1 > 0.84159519) AND (RAND_UNIF_2 > 0.4252669) THEN 'UNITED STATES OF AMERICA'
+  WHEN (RAND_UNIF_1 > 0.84159519) AND (RAND_UNIF_2 > 0.4252669) THEN 'UNITED STATES OF AMERICA' END
 
-  END
-
-  ,ASSET_CLASS_IND =
-  CASE WHEN BASEL_ASSET_CLASS = 'CORPORATES - SME' THEN 2
-  WHEN BASEL_ASSET_CLASS = 'RETAIL, OF WHICH SME' THEN 3
-  WHEN BASEL_ASSET_CLASS = 'RETAIL MORTGAGES' THEN 4
-  WHEN BASEL_ASSET_CLASS = 'SUPERVISORY SLOTTING' THEN 5
-  WHEN BASEL_APPROACH ='Standardised' THEN 6
-  WHEN RWA_SCALING = 1 THEN 7
-  ELSE 1 END
-
-  ,RISK_GRADE = CMS_RATING
+  --,RISK_GRADE = CMS_RATING
   --,BU_ID int
   --,BUS_UNIT varchar(50)
   --,SUB_BUSINESS_UNIT_NAME varchar(50)
   --,PRA_ASSET_CLASS varchar(50)
   --,SECTOR varchar(50)
 
-  ,LEGAL_ENTITY =
-  CASE WHEN RAND_UNIF_1 <= 0.09580038 THEN 'BOS'
-  WHEN (RAND_UNIF_1 > 0.09580038) AND (RAND_UNIF_1 <= 0.84159519) THEN 'LLOY'
-  WHEN (RAND_UNIF_1 > 0.84159519) AND (RAND_UNIF_1 <= 1) THEN 'LBCM'
+  ,LEGAL_ENTITY_DETAILED =
+  CASE WHEN RAND_UNIF_1 <= 0.09580038 THEN 'Bank of Scotland'
+  WHEN (RAND_UNIF_1 > 0.09580038) AND (RAND_UNIF_1 <= 0.84159519) THEN 'Lloyds Bank'
+  WHEN (RAND_UNIF_1 > 0.84159519) AND (RAND_UNIF_1 <= 1) THEN 'Lloyds Bank Capital Markets'
   END
 
   ,DEFAULT_IND =
