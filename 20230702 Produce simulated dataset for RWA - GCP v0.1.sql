@@ -1,6 +1,6 @@
 /*1. CREATE SCHEMA (IF NEEDED)*/
 
-CREATE SCHEMA `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_b3p1;
+--CREATE SCHEMA `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_b3p1;
 
 /*2. CREATE SIMULATED TABLE WITH 1 MILLION RECORDS*/
 
@@ -17,7 +17,7 @@ WITH RECURSIVE Ten AS
 )
 SELECT
 row_number() over() AS id,
-(row_number() over())/100 AS prop
+(row_number() over())/1000 AS prop
 FROM Ten
 CROSS JOIN Ten T100
 CROSS JOIN Ten T1000
@@ -31,111 +31,111 @@ CROSS JOIN Ten T1000
 /*3. BUILDING THE TABLE OUT TO CREATE THE TABLE REQUIRED AS INPUT TABLE TO RWA CALCUATION*/
 
 /*3a. Define the fields in the table*/
-ALTER TABLE dmn01_rsk_mvs_b3p1.B3p1T1
-  ADD column FACILITY_ID string
-  ,column CUSTOMER_ID string
-  ,column LBG_PRODUCT_CODE string
-  ,column LBG_MODEL_CODE float64
-  ,column CRAG_ID string
-  ,column LARGE_EXPOSURE_GROUP_ID string
-  ,column COUNTRY_OF_DOMICLE string
-  ,column UK_LOCAL_AUTHORITY_IND int64
-  ,column DRAWN_PRE_CRM float64
-  ,column CRM float64
-  ,column PRODUCT_TYPE_FOR_CCF_CLASSIFICATION string
-  ,column OFF_BALANCE_SHEET_EXP_PRE_CCF float64
-  ,column ST_EXPOSURE_CLASS string
-  ,column RFB_FLAG int64
-  ,column RFB_SUBSIDIARY_FLAG int64
-  ,column NRFB_SUBSIDIARY_FLAG int64
-  ,column LEGAL_ENTITY_DETAILED string
-  ,column COMPANY_CODE_SNS_SPLIT string
-  ,column ECAI_INSTITUTION_RATING_OBLIGOR string
-  ,column ECAI_RATING_SCALE_OBLIGOR string
-  ,column ECAI_INSTITION_RATING_SHORT_TERM_EXPOSURE_SPECIFIC string
-  ,column ECAI_RATING_SCALE_SHORT_TERM_EXPOSURE_SPECIFIC string
-  ,column EXP_SPECIFIC_SHORT_TERM_ECAI_RATING string
-  ,column ECAI_INSTITION_RATING_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE string
-  ,column ECAI_RATING_SCALE_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE string
-  ,column WORST_SHORT_TERM_ECAI_RATING_FROM_ANY_OTHER_EXPOSURE string
-  ,column EXPORT_CREDIT_AGENCY_RATING_MEIP int64
-  ,column EXPORT_CREDIT_AGENCY_INSTITUTION string
-  ,column MATURITY_AT_ORIGINATION float64
-  ,column EXP_RELATED_TO_GOODS_CROSS_INT_BORDERS_FLAG int64
-  ,column FI_CET1_RATIO float64
-  ,column FI_LEVERAGE_RATIO float64
-  ,column OBLIGOR_SOVEREIGN string
-  ,column ECAI_INSTITION_RATING_SOVEREIGN string
-  ,column SOVEREIGN_ECAI_RATING string
-  ,column SOVEREIGN_FLOOR_APPLICABLE int64
-  ,column UNRATED_INSTITION_CREDIT_ASSESSMENT string
-  ,column UNRATED_CORP_INV_GRADE_IND int64
-  ,column CORP_SPECIALIST_LENDING_CAT int64
-  ,column TRANSACTOR_CLASSIFICATION int64
-  ,column EXP_TO_OWN_PENSION_FUND_OR_OWN_EMPLOYEE int64
-  ,column OBLIGOR_CLASSIFICATION_IND_OR_FIRM string
-  ,column GROUP_TOTAL_GROSS_EXP_INC_CON_COUNTERPARTIES float64
-  ,column PRODUCT_TYPE_FOR_RETAIL_CLASSIFICATION string
-  ,column RETAIL_RESIDENTIAL_IND int64
-  ,column RE_IND int64
-  ,column RE_UNHEDGED_LENDING_WITH_CUR_MISMATCH float64
-  ,column RE_LE_BOOKING_HOLDS_1ST_CHARGE int64
-  ,column RE_CRE_IND int64
-  ,column RE_DEV_FLAG int64
-  ,column SECURED_FLAG int64
-  ,column RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN float64
-  ,column RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION float64
-  ,column RE_VAL_AT_ORIG float64
-  ,column RE_DATE_OF_ORIG_VAL float64
-  ,column RE_VAL_AT_LATEST_FA float64
-  ,column RE_DATE_OF_VAL_AT_LATEST_FA float64
-  ,column RE_VAL_AT_LATEST_VAL float64
-  ,column RE_REASON_FOR_LATEST_VAL string
-  ,column RE_LTV_AT_ORIG_PRESENT_AT_20250101 int64
-  ,column RE_INDEX_VALUATION float64
-  ,column RE_DATE_OF_INDEX_VALUATION date
-  ,column RE_VAL_PLEDGED_OFFSET_DEPOSIT float64
-  ,column RE_DATE_OF_VALUE_OF_LEDGED_OFFSET_DEPOSIT float64
-  ,column RE_SECURED_ON_HMO int64
-  ,column RE_DEPENDS_ON_RENTS int64
-  ,column RE_PRIMARY_RESIDENCE int64
-  ,column RE_OBLIGOR_NUM_PROPERTIES_EXC_PRIMARY_RES int64
-  ,column SOCIAL_HOUSING_FLAG int64
-  ,column RE_ADC_PRE_SALES_SIGNIF int64
-  ,column RE_ADC_BOR_EQ_SIGNIF int64
-  ,column DEFAULT_IND int64
-  ,column PROVISIONS float64
-  ,column HIGH_RISK_ITEM_IND int64
-  ,column COVERED_BOND_IND int64
-  ,column CIU_IND int64
-  ,column EQUITY_IND int64
-  ,column EQUITY_CAP_DEDUCT_TREAT_IND int64
-  ,column EQ_ARTICLE_89_IND int64
-  ,column EQ_ARTICLE_48_IND int64
-  ,column VC_IND int64
-  ,column SUB_DEBT_IND int64
-  ,column OTHER_ITEMS_TYPE string
-  ,column TURNOVER_LATEST float64
-  ,column TURNOVER_1YR_PRIOR float64
-  ,column TURNOVER_2YR_PRIOR float64
-  ,column TOTAL_ASSESTS_OBLIGOR float64
-  ,column SME_IND int64
-  ,column RESIDUAL_VALUE_IND int64
-  ,column RESIDUAL_VALUE float64
-  ,column YEARS_TO_RESIDUAL_VALUE_REALISATION float64
+ALTER TABLE dmn01_rsk_mvs_b3p1.T1
+  add column FACILITY_ID string
+  ,add column CUSTOMER_ID string
+  ,add column LBG_PRODUCT_CODE string
+  ,add column LBG_MODEL_CODE float64
+  ,add column CRAG_ID string
+  ,add column LARGE_EXPOSURE_GROUP_ID string
+  ,add column COUNTRY_OF_DOMICLE string
+  ,add column UK_LOCAL_AUTHORITY_IND int64
+  ,add column DRAWN_PRE_CRM float64
+  ,add column CRM float64
+  ,add column PRODUCT_TYPE_FOR_CCF_CLASSIFICATION string
+  ,add column OFF_BALANCE_SHEET_EXP_PRE_CCF float64
+  ,add column ST_EXPOSURE_CLASS string
+  ,add column RFB_FLAG int64
+  ,add column RFB_SUBSIDIARY_FLAG int64
+  ,add column NRFB_SUBSIDIARY_FLAG int64
+  ,add column LEGAL_ENTITY_DETAILED string
+  ,add column COMPANY_CODE_SNS_SPLIT string
+  ,add column ECAI_INSTITUTION_RATING_OBLIGOR string
+  ,add column ECAI_RATING_SCALE_OBLIGOR string
+  ,add column ECAI_INSTITION_RATING_SHORT_TERM_EXPOSURE_SPECIFIC string
+  ,add column ECAI_RATING_SCALE_SHORT_TERM_EXPOSURE_SPECIFIC string
+  ,add column EXP_SPECIFIC_SHORT_TERM_ECAI_RATING string
+  ,add column ECAI_INSTITION_RATING_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE string
+  ,add column ECAI_RATING_SCALE_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE string
+  ,add column WORST_SHORT_TERM_ECAI_RATING_FROM_ANY_OTHER_EXPOSURE string
+  ,add column EXPORT_CREDIT_AGENCY_RATING_MEIP int64
+  ,add column EXPORT_CREDIT_AGENCY_INSTITUTION string
+  ,add column MATURITY_AT_ORIGINATION float64
+  ,add column EXP_RELATED_TO_GOODS_CROSS_INT_BORDERS_FLAG int64
+  ,add column FI_CET1_RATIO float64
+  ,add column FI_LEVERAGE_RATIO float64
+  ,add column OBLIGOR_SOVEREIGN string
+  ,add column ECAI_INSTITION_RATING_SOVEREIGN string
+  ,add column SOVEREIGN_ECAI_RATING string
+  ,add column SOVEREIGN_FLOOR_APPLICABLE int64
+  ,add column UNRATED_INSTITION_CREDIT_ASSESSMENT string
+  ,add column UNRATED_CORP_INV_GRADE_IND int64
+  ,add column CORP_SPECIALIST_LENDING_CAT int64
+  ,add column TRANSACTOR_CLASSIFICATION int64
+  ,add column EXP_TO_OWN_PENSION_FUND_OR_OWN_EMPLOYEE int64
+  ,add column OBLIGOR_CLASSIFICATION_IND_OR_FIRM string
+  ,add column GROUP_TOTAL_GROSS_EXP_INC_CON_COUNTERPARTIES float64
+  ,add column PRODUCT_TYPE_FOR_RETAIL_CLASSIFICATION string
+  ,add column RETAIL_RESIDENTIAL_IND int64
+  ,add column RE_IND int64
+  ,add column RE_UNHEDGED_LENDING_WITH_CUR_MISMATCH float64
+  ,add column RE_LE_BOOKING_HOLDS_1ST_CHARGE int64
+  ,add column RE_CRE_IND int64
+  ,add column RE_DEV_FLAG int64
+  ,add column SECURED_FLAG int64
+  ,add column RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN float64
+  ,add column RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION float64
+  ,add column RE_VAL_AT_ORIG float64
+  ,add column RE_DATE_OF_ORIG_VAL float64
+  ,add column RE_VAL_AT_LATEST_FA float64
+  ,add column RE_DATE_OF_VAL_AT_LATEST_FA float64
+  ,add column RE_VAL_AT_LATEST_VAL float64
+  ,add column RE_REASON_FOR_LATEST_VAL string
+  ,add column RE_LTV_AT_ORIG_PRESENT_AT_20250101 int64
+  ,add column RE_INDEX_VALUATION float64
+  ,add column RE_DATE_OF_INDEX_VALUATION date
+  ,add column RE_VAL_PLEDGED_OFFSET_DEPOSIT float64
+  ,add column RE_DATE_OF_VALUE_OF_LEDGED_OFFSET_DEPOSIT float64
+  ,add column RE_SECURED_ON_HMO int64
+  ,add column RE_DEPENDS_ON_RENTS int64
+  ,add column RE_PRIMARY_RESIDENCE int64
+  ,add column RE_OBLIGOR_NUM_PROPERTIES_EXC_PRIMARY_RES int64
+  ,add column SOCIAL_HOUSING_FLAG int64
+  ,add column RE_ADC_PRE_SALES_SIGNIF int64
+  ,add column RE_ADC_BOR_EQ_SIGNIF int64
+  ,add column DEFAULT_IND int64
+  ,add column PROVISIONS float64
+  ,add column HIGH_RISK_ITEM_IND int64
+  ,add column COVERED_BOND_IND int64
+  ,add column CIU_IND int64
+  ,add column EQUITY_IND int64
+  ,add column EQUITY_CAP_DEDUCT_TREAT_IND int64
+  ,add column EQ_ARTICLE_89_IND int64
+  ,add column EQ_ARTICLE_48_IND int64
+  ,add column VC_IND int64
+  ,add column SUB_DEBT_IND int64
+  ,add column OTHER_ITEMS_TYPE string
+  ,add column TURNOVER_LATEST float64
+  ,add column TURNOVER_1YR_PRIOR float64
+  ,add column TURNOVER_2YR_PRIOR float64
+  ,add column TOTAL_ASSESTS_OBLIGOR float64
+  ,add column SME_IND int64
+  ,add column RESIDUAL_VALUE_IND int64
+  ,add column RESIDUAL_VALUE float64
+  ,add column YEARS_TO_RESIDUAL_VALUE_REALISATION float64
   --END OF B3p1 STANDARDISED REQUIRED VARIABLES
-  ,column BASEL_RESIDUAL_MATURITY float64
-  ,column IRB_APPROACH string
-  ,column IRB_EXPOSURE_SUB_CLASS string
-  ,column ROLL_OUT_ASSET_CLASS string
-  ,column LARGE_OR_UNREG_FINANCIAL_SECTOR_ENT_IND int64
-  ,column CORP_SME_IND int64
-  ,column HVCRE_IND int64
-  ,column IRB_RATING_SCALE string
-  ,column IRB_RATING_GRADE string
-  ,column SLOTTING_RATING_GRADE int64
-  ,column R_LGD float64
-  ,column R_CCF float64
+  ,add column BASEL_RESIDUAL_MATURITY float64
+  ,add column IRB_APPROACH string
+  ,add column IRB_EXPOSURE_SUB_CLASS string
+  ,add column ROLL_OUT_ASSET_CLASS string
+  ,add column LARGE_OR_UNREG_FINANCIAL_SECTOR_ENT_IND int64
+  ,add column CORP_SME_IND int64
+  ,add column HVCRE_IND int64
+  ,add column IRB_RATING_SCALE string
+  ,add column IRB_RATING_GRADE string
+  ,add column SLOTTING_RATING_GRADE int64
+  ,add column R_LGD float64
+  ,add column R_CCF float64
   ;
 
 
