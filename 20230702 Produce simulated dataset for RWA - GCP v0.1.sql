@@ -91,6 +91,7 @@ ALTER TABLE dmn01_rsk_mvs_b3p1.T1
   ,add column RE_VAL_AT_LATEST_FA float64
   ,add column RE_DATE_OF_VAL_AT_LATEST_FA float64
   ,add column RE_VAL_AT_LATEST_VAL float64
+  ,add column RE_DATE_OF_LATEST_VAL date
   ,add column RE_REASON_FOR_LATEST_VAL string
   ,add column RE_LTV_AT_ORIG_PRESENT_AT_20250101 int64
   ,add column RE_INDEX_VALUATION float64
@@ -244,34 +245,105 @@ UPDATE dmn01_rsk_mvs_b3p1.T1
   CASE WHEN abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.7 THEN 'Corp'
   ELSE 'Natural Person' END
   , GROUP_TOTAL_GROSS_EXP_INC_CON_COUNTERPARTIES = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+19 as string))), 61, 64) as int64))/100000.000 * 1000000, 2)
-  , PRODUCT_TYPE_FOR_RETAIL_CLASSIFICATION string
-  , RETAIL_RESIDENTIAL_IND int64
-  , RE_IND int64
-  , RE_UNHEDGED_LENDING_WITH_CUR_MISMATCH float64
-  , RE_LE_BOOKING_HOLDS_1ST_CHARGE int64
-  , RE_CRE_IND int64
-  , RE_DEV_FLAG int64
-  , SECURED_FLAG int64
-  , RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN float64
-  , RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION float64
-  , RE_VAL_AT_ORIG float64
-  , RE_DATE_OF_ORIG_VAL float64
-  , RE_VAL_AT_LATEST_FA float64
-  , RE_DATE_OF_VAL_AT_LATEST_FA float64
-  , RE_VAL_AT_LATEST_VAL float64
-  , RE_REASON_FOR_LATEST_VAL string
-  , RE_LTV_AT_ORIG_PRESENT_AT_20250101 int64
-  , RE_INDEX_VALUATION float64
-  , RE_DATE_OF_INDEX_VALUATION date
-  , RE_VAL_PLEDGED_OFFSET_DEPOSIT float64
-  , RE_DATE_OF_VALUE_OF_LEDGED_OFFSET_DEPOSIT float64
-  , RE_SECURED_ON_HMO int64
-  , RE_DEPENDS_ON_RENTS int64
-  , RE_PRIMARY_RESIDENCE int64
-  , RE_OBLIGOR_NUM_PROPERTIES_EXC_PRIMARY_RES int64
-  , SOCIAL_HOUSING_FLAG int64
-  , RE_ADC_PRE_SALES_SIGNIF int64
-  , RE_ADC_BOR_EQ_SIGNIF int64
+  , PRODUCT_TYPE_FOR_RETAIL_CLASSIFICATION = 
+  CASE WHEN prop <= 0.43 AND prop >0.411765 THEN 'Revolving facility'
+  WHEN prop <= 0.44 AND prop >0.43 THEN 'Term Loan'
+  WHEN prop <= 0.45 AND prop >0.44 THEN 'Credit Card'
+  WHEN prop <= 0.46 AND prop >0.45 THEN 'PCA'
+  WHEN prop <= 0.465 AND prop >0.46 THEN 'Vehicle Finance'
+  WHEN prop <= 0.470588 AND prop >0.465 THEN 'Student Loan'
+  ELSE NULL END
+  , RETAIL_RESIDENTIAL_IND =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+3 as string))), 61, 64) as int64))/100000.000 > 0.6) THEN 1
+  ELSE 0 END
+  , RE_IND = 
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN 1
+  WHEN (prop <= 0.588235 AND prop >0.529412 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+23 as string))), 61, 64) as int64))/100000.000 > 0.5) THEN 1
+  ELSE 0 END
+  , RE_UNHEDGED_LENDING_WITH_CUR_MISMATCH =
+  CASE WHEN (prop <= 0.470588 AND prop >0.411765 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+24 as string))), 61, 64) as int64))/100000.000 > 0.5) THEN 1
+  ELSE 0 END
+  , RE_LE_BOOKING_HOLDS_1ST_CHARGE =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.5) THEN 1
+  ELSE 0 END
+  , RE_CRE_IND =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 1
+  ELSE 0 END
+  , RE_DEV_FLAG =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+26 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 1
+  ELSE 0 END
+  , SECURED_FLAG =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.6) THEN 1
+  ELSE 0 END
+  --, RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN float64
+  --, RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION float64
+  , RE_VAL_AT_ORIG = 
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 * 0.75 + 1) /*Drawn balance x random factor in range 1 to 1.75*/
+  ELSE NULL END
+
+  , RE_DATE_OF_ORIG_VAL = DATE(2003, 12, 1)+ROW()
+  , RE_VAL_AT_LATEST_FA =
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 * 0.75 + 1) * 1.5 /*Valuation at orig x 1.5*/
+  ELSE NULL END
+  , RE_DATE_OF_VAL_AT_LATEST_FA = DATE(2005, 12, 1)+ROW()
+  , RE_VAL_AT_LATEST_VAL =
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 * 0.75 + 1) * 1.7 /*Valuation at orig x 1.7*/
+  ELSE NULL END
+  , RE_DATE_OF_LATEST_VAL = DATE(2007, 12, 1)+ROW()
+  , RE_REASON_FOR_LATEST_VAL =
+  CASE WHEN prop <= 0.49 AND prop >0.470588 THEN 'FA'
+  WHEN prop <= 0.505 AND prop >0.49 THEN 'Remort'
+  WHEN prop <= 0.515 AND prop >0.505 THEN 'Recap'
+  WHEN prop <= 0.529412 AND prop >0.515 THEN 'Other'
+  ELSE NULL END
+  , RE_LTV_AT_ORIG_PRESENT_AT_20250101 =
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN 1
+  ELSE 0 END
+  , RE_INDEX_VALUATION =
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 * 0.75 + 1) * 1.7 * 1.2 /*Valuation at latest valuation x 1.2*/
+  ELSE NULL END
+  , RE_DATE_OF_INDEX_VALUATION = 
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN CURRENT_DATE - 31
+  ELSE NULL END
+  , RE_VAL_PLEDGED_OFFSET_DEPOSIT = 
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000
+  * 0.1 /*Drawn balance x 0.1*/
+  ELSE NULL END
+  , RE_DATE_OF_VALUE_OF_LEDGED_OFFSET_DEPOSIT =
+  CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN CURRENT_DATE
+  ELSE NULL END
+  , RE_SECURED_ON_HMO =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+27 as string))), 61, 64) as int64))/100000.000 > 0.9) THEN 1
+  ELSE 0 END
+  , RE_DEPENDS_ON_RENTS =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+28 as string))), 61, 64) as int64))/100000.000 > 0.8) THEN 1
+  ELSE 0 END
+  --, RE_PRIMARY_RESIDENCE int64
+  , RE_OBLIGOR_NUM_PROPERTIES_EXC_PRIMARY_RES =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+28 as string))), 61, 64) as int64))/100000.000 > 0.8) THEN 
+  round(abs(cast("0x"||substring(to_hex(sha256(cast(id+27 as string))), 61, 64) as int64))/100000.000 * 4, 0)
+  ELSE 0 END
+  , SOCIAL_HOUSING_FLAG =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 > 0.8) THEN 1
+  ELSE 0 END
+  , RE_ADC_PRE_SALES_SIGNIF =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 
+  AND abs(cast("0x"||substring(to_hex(sha256(cast(id+26 as string))), 61, 64) as int64))/100000.000 > 0.2 
+  AND abs(cast("0x"||substring(to_hex(sha256(cast(id+20 as string))), 61, 64) as int64))/100000.000 > 0.5) THEN 1 /*If development flag is 1 and rand var is greater than 0.5*/
+  ELSE 0 END
+  , RE_ADC_BOR_EQ_SIGNIF =
+  CASE WHEN (prop <= 0.529412 AND prop >0.470588 
+  AND abs(cast("0x"||substring(to_hex(sha256(cast(id+26 as string))), 61, 64) as int64))/100000.000 > 0.2 
+  AND abs(cast("0x"||substring(to_hex(sha256(cast(id+28 as string))), 61, 64) as int64))/100000.000 > 0.5) THEN 1 /*If development flag is 1 and rand var is greater than 0.5*/
+  ELSE 0 END
   --, DEFAULT_IND int64
   --, PROVISIONS float64
   , HIGH_RISK_ITEM_IND int64
