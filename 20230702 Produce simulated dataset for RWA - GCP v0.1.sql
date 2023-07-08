@@ -147,14 +147,15 @@ ALTER TABLE dmn01_rsk_mvs_b3p1.T1
 UPDATE dmn01_rsk_mvs_b3p1.T1
   SET FACILITY_ID = cast(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0) as string)
   , CUSTOMER_ID = cast(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0) as string)
-  --, LBG_PRODUCT_CODE
-  --, LBG_MODEL_CODE float64
+  , LBG_PRODUCT_CODE = 1000
+  --, LBG_MODEL_CODE string
   --, CRAG_ID string
   --, LARGE_EXPOSURE_GROUP_ID string
-  --, COUNTRY_OF_DOMICLE string
-  , UK_LOCAL_AUTHORITY_IND int64
+  , COUNTRY_OF_DOMICLE = 'United Kingdom of Great Britain and Northern Ireland'
+  , UK_LOCAL_AUTHORITY_IND = 0
   , DRAWN_PRE_CRM = (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 /*random normal with mean 2,000,000 and standard deviation 6,000,000*/
-  --, CRM float64
+  , CRM = (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+    abs(cast("0x"||substring(to_hex(sha256(cast(id+11 as string))), 61, 64) as int64))/100000.000 * 0.4 /*drawn multiplied by random number between 0 and 0.4*/
   
   , PRODUCT_TYPE_FOR_CCF_CLASSIFICATION = 
     CASE WHEN prop <= 0.89 AND prop > 0 THEN 'Acceptances'
@@ -181,48 +182,54 @@ UPDATE dmn01_rsk_mvs_b3p1.T1
     WHEN prop <= 0.882353 AND prop >0.823529 THEN 'Exposures in the form of units or shares in Collective Investment Undertakings'
     WHEN prop <= 0.941176 AND prop >0.882353 THEN 'Subordinated Debt, Equity and Other Own Funds Investments'
     WHEN prop > 0.941176 THEN 'Other Items' END
-  --, RFB_FLAG int64
-  --, RFB_SUBSIDIARY_FLAG int64
-  --, NRFB_SUBSIDIARY_FLAG int64
-  --, LEGAL_ENTITY_DETAILED string
+  , RFB_FLAG =
+    CASE WHEN (prop <= 0.411765 AND prop >0.352941 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+62 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 1
+    ELSE 0 END
+  , RFB_SUBSIDIARY_FLAG =
+    CASE WHEN (prop <= 0.411765 AND prop >0.352941 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+62 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 1
+    ELSE 0 END
+  , NRFB_SUBSIDIARY_FLAG =
+    CASE WHEN (prop <= 0.411765 AND prop >0.352941 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+62 as string))), 61, 64) as int64))/100000.000 < 0.2) THEN 1
+    ELSE 0 END
+  , LEGAL_ENTITY_DETAILED = 'B N Other'
   --, COMPANY_CODE_SNS_SPLIT string
   
   , ECAI_INSTITUTION_RATING_OBLIGOR = "Moody's Investor Service"
   , ECAI_RATING_SCALE_OBLIGOR = 'Global long-term rating scale'
   , ECAI_INSTITION_RATING_SHORT_TERM_EXPOSURE_SPECIFIC =
-    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 'No Rating Available'
-    WHEN prop <= 0.352941 and prop > 0.33 THEN "Moody's Investor Service" END
+    CASE WHEN prop <= 0.352941 and prop > 0.33 THEN "Moody's Investor Service" 
+    ELSE 'No Rating Available' END
 
   , ECAI_RATING_SCALE_SHORT_TERM_EXPOSURE_SPECIFIC =
-    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 'No Rating Available'
-    WHEN prop <= 0.352941 and prop > 0.33 THEN 'Global short-term rating scale' END
+    CASE WHEN prop <= 0.352941 and prop > 0.33 THEN 'Global short-term rating scale' 
+    ELSE 'No Rating Available' END
   
   , EXP_SPECIFIC_SHORT_TERM_ECAI_RATING =
-    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 'No Rating Available'
-    WHEN prop <= 0.352941 and prop > 0.33 THEN 'P-1' END
+    CASE WHEN prop <= 0.352941 and prop > 0.33 THEN 'P-1'
+    ELSE 'No Rating Available' END
 
   , ECAI_INSTITION_RATING_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE =
-    CASE WHEN prop <= 0.34 and prop > 0.294118 THEN 'No Rating Available'
-    WHEN prop <= 0.352941 and prop > 0.34 THEN "Moody's Investor Service" END
+    CASE WHEN prop <= 0.352941 and prop > 0.34 THEN "Moody's Investor Service"
+    ELSE 'No Rating Available' END
   
   , ECAI_RATING_SCALE_SHORT_TERM_FROM_ANY_OTHER_EXPOSURE =
-    CASE WHEN prop <= 0.34 and prop > 0.294118 THEN 'No Rating Available'
-    WHEN prop <= 0.352941 and prop > 0.34 THEN 'Global short-term rating scale' END
+    CASE WHEN prop <= 0.352941 and prop > 0.34 THEN 'Global short-term rating scale'
+    ELSE 'No Rating Available' END
 
   , WORST_SHORT_TERM_ECAI_RATING_FROM_ANY_OTHER_EXPOSURE =
-    CASE WHEN prop <= 0.34 and prop > 0.294118 THEN 'No Exposure Specific Short Term ECAI Rating Available'
-    WHEN prop <= 0.352941 and prop > 0.34 THEN 'P-2' END
+    CASE WHEN prop <= 0.352941 and prop > 0.34 THEN 'P-2'
+    ELSE 'No Exposure Specific Short Term ECAI Rating Available' END
   
   , EXPORT_CREDIT_AGENCY_RATING_MEIP =
-    CASE WHEN prop <= 0.33 and prop > 0.294118 THEN 0
-    WHEN prop <= 0.345 and prop > 0.33 THEN 1
-    WHEN prop <= 0.352941 and prop > 0.345 THEN 6 END
+    CASE WHEN prop <= 0.345 and prop > 0.33 THEN 1
+    WHEN prop <= 0.352941 and prop > 0.345 THEN 6
+    ELSE 0 END
 
   , EXPORT_CREDIT_AGENCY_INSTITUTION = 'to be filled'
   , MATURITY_AT_ORIGINATION = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+12 as string))), 61, 64) as int64))/100000.000 * 12, 1)
   , EXP_RELATED_TO_GOODS_CROSS_INT_BORDERS_FLAG =
-    CASE WHEN prop <= 0.32 and prop > 0.294118 THEN 0
-    WHEN prop <= 0.352941 and prop > 0.32 THEN 1 END
+    CASE WHEN prop <= 0.352941 and prop > 0.32 THEN 1
+    ELSE 0 END
   , FI_CET1_RATIO = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+72 as string))), 61, 64) as int64))/100000.000 * 4 + 12, 1)
   , FI_LEVERAGE_RATIO = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+62 as string))), 61, 64) as int64))/100000.000 * 4 + 3, 1)
   , OBLIGOR_SOVEREIGN = 'UK'
@@ -232,8 +239,10 @@ UPDATE dmn01_rsk_mvs_b3p1.T1
   , SOVEREIGN_FLOOR_APPLICABLE = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+13 as string))), 61, 64) as int64))/100000.000, 0)
   , UNRATED_INSTITION_CREDIT_ASSESSMENT =
   CASE WHEN abs(cast("0x"||substring(to_hex(sha256(cast(id+13 as string))), 61, 64) as int64))/100000.000 > 0.5 THEN 'A'
-  ELSE 'A' END
-  --, UNRATED_CORP_INV_GRADE_IND int64
+  ELSE 'B' END
+  , UNRATED_CORP_INV_GRADE_IND =
+  CASE WHEN (prop <= 0.411765 AND prop >0.352941 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+9 as string))), 61, 64) as int64))/100000.000 > 0.7) THEN 1
+  ELSE 0 END
   , CORP_SPECIALIST_LENDING_CAT = round(abs(cast("0x"||substring(to_hex(sha256(cast(id+9 as string))), 61, 64) as int64))/100000.000 * 5, 0)
   , TRANSACTOR_CLASSIFICATION = 
   CASE WHEN abs(cast("0x"||substring(to_hex(sha256(cast(id+17 as string))), 61, 64) as int64))/100000.000 > 0.7 THEN 1
@@ -275,8 +284,16 @@ UPDATE dmn01_rsk_mvs_b3p1.T1
   , SECURED_FLAG =
   CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.6) THEN 1
   ELSE 0 END
-  --, RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN float64
-  --, RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION float64
+  , RE_2ND_CHARGES_AT_PARI_PASSU_INC_LOAN =
+  CASE WHEN ((prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.6) AND
+  (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 < 0.5)) THEN 1
+  ELSE 0 END /*secured but don't hold the first charge*/
+  , RE_TOTAL_OTHER_CLAIMS_ON_PROPERTY_TO_BE_DEDUCTED_FROM_VALUATION = 
+  CASE WHEN ((prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.6) AND
+  (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 < 0.5)) THEN
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 * 0.75 + 1) * 0.3 /*Valuation at origination x 0.3*/
+  ELSE 0 END
   , RE_VAL_AT_ORIG = 
   CASE WHEN prop <= 0.529412 AND prop >0.470588 THEN
   (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
@@ -326,7 +343,9 @@ UPDATE dmn01_rsk_mvs_b3p1.T1
   , RE_DEPENDS_ON_RENTS =
   CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+28 as string))), 61, 64) as int64))/100000.000 > 0.8) THEN 1
   ELSE 0 END
-  --, RE_PRIMARY_RESIDENCE int64
+  , RE_PRIMARY_RESIDENCE =
+    CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+28 as string))), 61, 64) as int64))/100000.000 < 0.8) THEN 1
+  ELSE 0 END  /*if not dependent on rent*/
   , RE_OBLIGOR_NUM_PROPERTIES_EXC_PRIMARY_RES =
   CASE WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+28 as string))), 61, 64) as int64))/100000.000 > 0.8) THEN 
   round(abs(cast("0x"||substring(to_hex(sha256(cast(id+27 as string))), 61, 64) as int64))/100000.000 * 4, 0)
@@ -344,43 +363,188 @@ UPDATE dmn01_rsk_mvs_b3p1.T1
   AND abs(cast("0x"||substring(to_hex(sha256(cast(id+26 as string))), 61, 64) as int64))/100000.000 > 0.2 
   AND abs(cast("0x"||substring(to_hex(sha256(cast(id+28 as string))), 61, 64) as int64))/100000.000 > 0.5) THEN 1 /*If development flag is 1 and rand var is greater than 0.5*/
   ELSE 0 END
-  --, DEFAULT_IND int64
-  --, PROVISIONS float64
-  , HIGH_RISK_ITEM_IND int64
-  , COVERED_BOND_IND int64
-  , CIU_IND int64
-  , EQUITY_IND int64
-  , EQUITY_CAP_DEDUCT_TREAT_IND int64
-  , EQ_ARTICLE_89_IND int64
-  , EQ_ARTICLE_48_IND int64
-  , VC_IND int64
-  , SUB_DEBT_IND int64
-  , OTHER_ITEMS_TYPE string
-  , TURNOVER_LATEST float64
-  , TURNOVER_1YR_PRIOR float64
-  , TURNOVER_2YR_PRIOR float64
-  , TOTAL_ASSESTS_OBLIGOR float64
-  , SME_IND int64
-  , RESIDUAL_VALUE_IND int64
-  , RESIDUAL_VALUE float64
-  , YEARS_TO_RESIDUAL_VALUE_REALISATION float64
-  --END OF B3p1 STANDARDISED REQUIRED VARIABLES
-  , BASEL_RESIDUAL_MATURITY float64
-  , IRB_APPROACH string
-  , IRB_EXPOSURE_SUB_CLASS string
-  , ROLL_OUT_ASSET_CLASS string
-  , LARGE_OR_UNREG_FINANCIAL_SECTOR_ENT_IND int64
-  , CORP_SME_IND int64
-  , HVCRE_IND int64
-  , IRB_RATING_SCALE string
-  , IRB_RATING_GRADE string
-  , SLOTTING_RATING_GRADE int64
-  , R_LGD float64
-  , R_CCF float64
+  , DEFAULT_IND =
+  CASE WHEN prop <= 0.588235 AND prop >0.529412 THEN 1
+  ELSE 0 END
+  , PROVISIONS =
+  CASE WHEN prop <= 0.588235 AND prop >0.529412 THEN 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 * 0.4) /*Drawn balance x random factor in range 0 to 0.4*/
+  ELSE 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+29 as string))), 61, 64) as int64))/100000.000 * 0.01) END /*Drawn balance x random factor in range 0 to 0.01*/
+  , HIGH_RISK_ITEM_IND =
+  CASE WHEN prop <= 0.647059 AND prop >0.588235 THEN 1
+  ELSE 0 END
+  , COVERED_BOND_IND =
+  CASE WHEN prop <= 0.705882 AND prop >0.647059 THEN 1
+  ELSE 0 END
+  , CIU_IND =
+  CASE WHEN prop <= 0.882353 AND prop >0.823529 THEN 1
+  ELSE 0 END
+  , EQUITY_IND =
+  CASE WHEN prop <= 0.90 AND prop >0.882353 THEN 1
+  ELSE 0 END
+  , EQUITY_CAP_DEDUCT_TREAT_IND =
+  CASE WHEN prop <= 0.91 AND prop >0.90 THEN 1
+  ELSE 0 END
+  , EQ_ARTICLE_89_IND =
+  CASE WHEN prop <= 0.92 AND prop >0.91 THEN 1
+  ELSE 0 END
+  , EQ_ARTICLE_48_IND =
+  CASE WHEN prop <= 0.93 AND prop >0.92 THEN 1
+  ELSE 0 END
+  , VC_IND =
+  CASE WHEN prop <= 0.938 AND prop >0.93 THEN 1
+  ELSE 0 END
+  , SUB_DEBT_IND =
+  CASE WHEN prop <= 0.941176 AND prop >0.938 THEN 1
+  ELSE 0 END
+  , OTHER_ITEMS_TYPE =
+  CASE WHEN prop > 0.941176 THEN 1 END
+  ELSE 0 END
+  , TURNOVER_LATEST =
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 + 3) /*Drawn balance x random factor in range 3 to 4*/
+  , TURNOVER_1YR_PRIOR =
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 + 2.9) /*Latest turnover with reduced multiple on drawn: range 2.9 to 3.9*/
+  , TURNOVER_2YR_PRIOR =
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 + 2.8) /*Latest turnover with reduced multiple on drawn: range 2.8 to 3.8*/
+  , TOTAL_ASSESTS_OBLIGOR =
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 + 5) /*Latest turnover with reduced multiple on drawn: range 2.8 to 3.8*/
+  , SME_IND =
+  CASE WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.7 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000) THEN 1 
+  ELSE 0 END /*when OBLIGOR_CLASSIFICATION_IND_OR_FIRM is corp and drawn less than £880k, 1 else 0*/
+  , RESIDUAL_VALUE_IND =
+  CASE WHEN prop <= 0.97 AND prop >0.941176 THEN 1
+  ELSE 0 END
+  , RESIDUAL_VALUE = 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 *
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 * 0.1 + 0.7) /*Drawn balance x random factor in range 0.7 to 0.8*/
+  , YEARS_TO_RESIDUAL_VALUE_REALISATION = 
+  CASE WHEN prop <= 0.97 AND prop >0.941176 THEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+7 as string))), 61, 64) as int64))/100000.000 * 3) /*random between 0 and 3*/
+  ELSE 0 END
+  /*END OF B3p1 STANDARDISED REQUIRED VARIABLES*/
+  , BASEL_RESIDUAL_MATURITY = (abs(cast("0x"||substring(to_hex(sha256(cast(id+9 as string))), 61, 64) as int64))/100000.000 * 5) /*random between 0 and 5*/
+  , IRB_APPROACH =
+  CASE WHEN prop <= 0.470588 AND prop >0.411765 THEN 'Advanced'
+  WHEN prop <= 0.365 AND prop >0.352941 THEN 'Slotting'
+  WHEN prop <= 0.53 AND prop >0.529412 THEN 'Slotting'
+  WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 'Slotting' /*RE and CRE*/
+  ELSE 'Foundation' END
+
+  , IRB_EXPOSURE_SUB_CLASS =
+  CASE WHEN prop <= 0.058824 AND prop > 0 THEN 'Central Government and Central Banks'
+  WHEN prop <= 0.11767 AND prop >0.058824 THEN 'Institutions Quasi-sovereigns'
+  WHEN prop <= 0.176471 AND prop >0.11767 THEN 'Institutions Quasi-sovereigns'
+  WHEN prop <= 0.235294 AND prop >0.176471 THEN 'Institutions Quasi-sovereigns'
+  WHEN prop <= 0.294118 AND prop >0.235294 THEN 'Institutions Quasi-sovereigns'
+  WHEN prop <= 0.352941 AND prop >0.294118 THEN 'Institutions Other institutions'
+    
+  WHEN prop <= 0.365 AND prop >0.352941 THEN 'Corporate Specialised lending exposures'
+  WHEN prop <= 0.38 AND prop >0.365 THEN 'Corporate Financial Corporates and large corporates'
+  WHEN prop <= 0.411765 AND prop >0.38 THEN 'Corporates Other general corporates'
+
+  WHEN prop <= 0.435 AND prop >0.411765 THEN 'Retail Exposures Qualifying revolving retail exposures'
+  WHEN prop <= 0.45 AND prop >0.435 THEN 'Retail Exposures secured by residential immovable property'
+  WHEN prop <= 0.470588 AND prop >0.45 THEN 'Retail Exposures Other retail'
+
+  WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 'Corporate Specialised lending exposures' /*RE and CRE*/
+  WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 'Retail Exposures secured by residential immovable property' /*RE and not CRE*/
+    
+  WHEN prop <= 0.53 AND prop >0.529412 THEN 'Corporate Specialised lending exposures'
+  WHEN prop <= 0.545 AND prop >0.53 THEN 'Corporate Financial Corporates and large corporates'
+  WHEN prop <= 0.56 AND prop >0.545 THEN 'Corporates Other general corporates'
+  WHEN prop <= 0.57 AND prop >0.56 THEN 'Retail Exposures Qualifying revolving retail exposures'
+  WHEN prop <= 0.58 AND prop >0.57 THEN 'Retail Exposures secured by residential immovable property'
+  WHEN prop <= 0.588235 AND prop >0.58 THEN 'Retail Exposures Other retail'
+
+  WHEN prop <= 0.647059 AND prop >0.588235 THEN 'Corporates Other general corporates'
+  WHEN prop <= 0.705882 AND prop >0.647059 THEN 'Corporate Financial Corporates and large corporates'
+  WHEN prop <= 0.764706 AND prop >0.705882 THEN 'Items representing securitisation positions'
+  WHEN prop <= 0.823529 AND prop >0.764706 THEN 'Corporates Other general corporates'
+  WHEN prop <= 0.882353 AND prop >0.823529 THEN 'Other non-credit obligation assets'
+  WHEN prop <= 0.941176 AND prop >0.882353 THEN 'Equity exposures Other equity'
+  WHEN prop > 0.941176 THEN 'Other non-credit obligation assets' END
   
+  , ROLL_OUT_ASSET_CLASS =
+  CASE WHEN prop <= 0.352941 AND prop > 0 THEN 'Institutions'
+    
+  WHEN prop <= 0.365 AND prop >0.352941 THEN 'Specialised lending'
+  WHEN prop <= 0.411765 AND prop >0.365 THEN 'FC, LC & General Corporate'
+
+  WHEN prop <= 0.435 AND prop >0.411765 THEN 'QRRE'
+  WHEN prop <= 0.45 AND prop >0.435 THEN 'Retail Residential Property'
+  WHEN prop <= 0.470588 AND prop >0.45 THEN 'Other retail'
+
+  WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 'Specialised lending'/*RE and CRE*/
+  WHEN (prop <= 0.529412 AND prop >0.470588 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 'Retail Residential Property' /*RE and not CRE*/
+    
+  WHEN prop <= 0.53 AND prop >0.529412 THEN 'Specialised lending'
+  WHEN prop <= 0.56 AND prop >0.53 THEN 'FC, LC & General Corporate'
+  WHEN prop <= 0.57 AND prop >0.56 THEN 'QRRE'
+  WHEN prop <= 0.58 AND prop >0.57 THEN 'Retail Residential Property'
+  WHEN prop <= 0.588235 AND prop >0.58 THEN 'Other retail'
+
+  WHEN prop <= 0.705882AND prop >0.588235 THEN 'FC, LC & General Corporate'
+  WHEN prop <= 0.764706 AND prop >0.705882 THEN 'Purchased Receivables within Corporate'
+  WHEN prop <= 0.823529 AND prop >0.764706 THEN 'FC, LC & General Corporate'
+  WHEN prop <= 0.882353 AND prop >0.823529 THEN 'Other retail'
+  WHEN prop <= 0.941176 AND prop >0.882353 THEN 'Purchased Receivables within Corporate'
+  WHEN prop > 0.941176 THEN 'Other retail' END
+
+
+  , LARGE_OR_UNREG_FINANCIAL_SECTOR_ENT_IND =
+  CASE WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.5 THEN 1
+  ELSE 0 END
+  , CORP_SME_IND = 
+  CASE WHEN ((abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.7 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000) AND
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+22 as string))), 61, 64) as int64))/100000.000 + 3) < 44000000) THEN 1 
+  ELSE 0 END /*when OBLIGOR_CLASSIFICATION_IND_OR_FIRM is corp, drawn is over £880k and turnover less than £44 mill, 1 else 0*/
+  , HVCRE_IND =
+  CASE WHEN (prop <= 0.529412 AND prop >0.5 AND abs(cast("0x"||substring(to_hex(sha256(cast(id+25 as string))), 61, 64) as int64))/100000.000 > 0.2) THEN 1
+  ELSE 0 END /*subset of CRE flag (where prop >0.5 is only difference from CRE flag)*/
+  , IRB_RATING_SCALE = 
+  CASE WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.7 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000) THEN 'BDCS' 
+  ELSE 'CMS' END /*when SME (OBLIGOR_CLASSIFICATION_IND_OR_FIRM is corp and drawn less than £880k), BDCS else CMS*/
+  , IRB_RATING_GRADE =
+  /*BDCS*/
+  CASE WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.7 AND
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 <= 0.8 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000) THEN 'A'
+
+  WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.8 AND
+  (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 <= 0.9 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000) THEN 'B'
+
+  WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.9 AND
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000) THEN 'C'
+
+  CASE WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 > 0.7 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000 AND
+  prop <= 0.588235 AND prop >0.529412) THEN 'Y'
   
+  /*CMS*/
+  WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 <= 0.7 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000) THEN 
+  round(abs(cast("0x"||substring(to_hex(sha256(cast(id+33 as string))), 61, 64) as int64))/100000.000 * 18 + 1, 0)
+
+  WHEN (abs(cast("0x"||substring(to_hex(sha256(cast(id+16 as string))), 61, 64) as int64))/100000.000 <= 0.7 AND 
+  (SQRT(-2*LOG(nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id as string))), 61, 64) as int64)),0)/100000.000))*SIN(2*ACOS(-1)*nullif(abs(cast("0x"||substring(to_hex(sha256(cast(id+1 as string))), 61, 64) as int64)),0)/100000.000)) * 6000000 + 2000000 < 8800000 AND
+  prop <= 0.588235 AND prop >0.529412) THEN '20' END
+
+  , SLOTTING_RATING_GRADE = 2
+  , R_LGD = 45
+  , R_CCF = 75
+  WHERE = true;
   
-  
+
   
   
   PRODUCT = 'GC (exc CRE)'
