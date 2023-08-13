@@ -1,6 +1,6 @@
 /*1. CREATE SCHEMA (IF NEEDED)*/
 
---CREATE SCHEMA `dmn01-rskcda-ide-17-a7be`.dmn01_rsk_mvs_b3p1;
+--CREATE SCHEMA `dmn01-rskcda-ide-19-4a95`.dmn01_rsk_mvs_b3p1;
 
 /*2. CREATE SIMULATED TABLE WITH 1 MILLION RECORDS*/
 
